@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Терминал: ПРОТОКОЛ ОМЕГА</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --main-color: #00FF41;
+            --bg-color: #1a1a1a;
+            --glow-color: rgba(0, 255, 65, 0.5);
+            --error-color: #ff4141;
+            --dev-color: #00ffff;
+        }
+        body, html {
+            margin: 0; padding: 0; background: #000;
+            color: var(--main-color); font-family: 'VT323', monospace;
+            font-size: 20px; height: 100%; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .terminal {
+            width: 100%; max-width: 800px; height: 90vh; max-height: 600px;
+            background: var(--bg-color); border: 2px solid var(--main-color);
+            box-shadow: 0 0 15px var(--glow-color); display: flex;
+            flex-direction: column; position: relative;
+            transition: border-color 0.5s, box-shadow 0.5s;
+        }
+        .terminal.lockdown {
+            --main-color: var(--error-color);
+            --glow-color: rgba(255, 65, 65, 0.7);
+        }
+        .terminal.core_access {
+            animation: core-pulse 2s infinite;
+        }
+        .terminal::after {
+            content: ' '; display: block; position: absolute; top: 0; left: 0;
+            bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2; background-size: 100% 4px, 3px 100%;
+            pointer-events: none; animation: flicker 0.1s infinite;
+        }
+        #output {
+            flex-grow: 1; padding: 15px; overflow-y: auto;
+            white-space: pre-wrap; word-wrap: break-word;
+        }
+        .input-line { display: flex; padding: 0 15px 15px 15px; align-items: center; }
+        .input-line span { margin-right: 8px; }
+        #userInput { background: transparent; border: none; color: var(--main-color); font-family: inherit; font-size: inherit; flex-grow: 1; }
+        #userInput:focus { outline: none; }
+        .cursor { display: inline-block; width: 10px; height: 20px; background: var(--main-color); animation: blink 1s step-end infinite; margin-left: 5px; }
+        #actionButton { margin-left: 15px; background: transparent; border: 1px solid var(--main-color); color: var(--main-color); padding: 5px 15px; cursor: pointer; font-family: inherit; font-size: 18px; transition: background-color 0.2s, color 0.2s; }
+        #actionButton:hover { background: var(--main-color); color: var(--bg-color); }
+        #actionButton:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .puzzle-container { padding: 10px 0; display: none; flex-direction: column; align-items: center; }
+        #memory-sequence { display: flex; gap: 10px; margin-top: 15px; }
+        .memory-block { width: 50px; height: 50px; border: 2px solid var(--main-color); cursor: pointer; transition: background-color 0.2s, border-color 0.5s; }
+        .memory-block.lit { background-color: var(--main-color); box-shadow: 0 0 10px var(--glow-color); }
+        .memory-block.glitch { animation: glitch-block 0.3s infinite; }
+        #data-corruption { font-size: 12px; line-height: 1; letter-spacing: 4px; color: rgba(0, 255, 65, 0.7); animation: text-flicker 0.05s infinite; }
+        
+        #maze-display { font-size: 12px; line-height: 1; letter-spacing: 2px; }
+        .glitch-text { color: var(--main-color); text-shadow: 1px 1px var(--error-color), -1px -1px var(--dev-color); animation: glitch-anim 0.2s infinite; }
+        #bruteforce-bar { width: 80%; height: 20px; border: 1px solid var(--main-color); background: #333; }
+        #bruteforce-progress { width: 0%; height: 100%; background: var(--main-color); transition: width 0.1s linear; }
+
+        .dev-console { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; height: 400px; background: rgba(10, 20, 30, 0.9); border: 2px solid var(--dev-color); box-shadow: 0 0 20px var(--dev-color); z-index: 1000; color: var(--dev-color); flex-direction: column; }
+        .dev-header { padding: 5px 10px; background: var(--dev-color); color: #000; font-weight: bold; }
+        #devOutput { flex-grow: 1; padding: 10px; overflow-y: auto; white-space: pre-wrap; }
+        #devInput { background: transparent; border: none; color: var(--dev-color); font-family: inherit; font-size: inherit; flex-grow: 1; }
+        
+        @keyframes blink { from, to { background-color: transparent; } 50% { background-color: var(--main-color); } }
+        @keyframes flicker { 0% { opacity: 1; } 50% { opacity: 0.95; } 100% { opacity: 1; } }
+        @keyframes text-flicker { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
+        @keyframes glitch-anim { 0% { transform: translate(0); } 25% { transform: translate(2px, -2px); } 50% { transform: translate(-2px, 2px); } 75% { transform: translate(2px, 2px); } 100% { transform: translate(0); } }
+        @keyframes core-pulse { 0% { box-shadow: 0 0 15px var(--glow-color); } 50% { box-shadow: 0 0 30px var(--glow-color), 0 0 10px #fff inset; } 100% { box-shadow: 0 0 15px var(--glow-color); } }
+        @keyframes glitch-block { 0% { transform: skewX(0); } 25% { transform: skewX(10deg); } 75% { transform: skewX(-10deg); } 100% { transform: skewX(0); } }
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <div id="output"></div>
+        <div class="input-line">
+            <span>></span>
+            <input type="text" id="userInput" autocomplete="off" autofocus>
+            <button id="actionButton" onclick="processInput()">ОТПРАВИТЬ</button>
+            <div class="cursor"></div>
+        </div>
+    </div>
+    <div id="devConsole" class="dev-console">
+        <div class="dev-header">// DEV CONSOLE (Ctrl+Shift+D)</div>
+        <div id="devOutput"></div>
+        <div class="dev-input-line"><span>#</span><input type="text" id="devInput" autocomplete="off"><div class="dev-cursor"></div></div>
+    </div>
+<script>
+const output = document.getElementById('output'); const userInput = document.getElementById('userInput'); const actionButton = document.getElementById('actionButton'); const devConsole = document.getElementById('devConsole'); const devOutput = document.getElementById('devOutput'); const devInput = document.getElementById('devInput');
+let currentStage = 0; let lockInput = false; const questAnswers = {};
+function typewriter(text, onComplete) { lockInput = true; actionButton.disabled = true; let i = 0; const p = document.createElement('p'); output.appendChild(p); const interval = setInterval(() => { p.textContent += text[i]; i++; output.scrollTop = output.scrollHeight; if (i >= text.length) { clearInterval(interval); lockInput = false; actionButton.disabled = false; userInput.focus(); if (onComplete) onComplete(); } }, 20); }
+function clearOutput() { output.innerHTML = ''; }
+function appendHtml(html) { const div = document.createElement('div'); div.innerHTML = html; output.appendChild(div); output.scrollTop = output.scrollHeight; }
+function displayError(message = ">> ОШИБКА ДОСТУПА. ПОПРОБУЙТЕ СНОВА.") { const p = document.createElement('p'); p.style.color = 'var(--error-color)'; p.textContent = message; output.appendChild(p); output.scrollTop = output.scrollHeight; }
+
+const quest = {
+    // Этапы 1-20
+    stage1: { setup: () => { clearOutput(); typewriter("...ПОДКЛЮЧЕНИЕ К УЗЛУ 'АВРОРА'...\n>> Запрос: Я слово из 4 букв. Моя первая буква - третья в алфавите. Меня можно услышать, но не потрогать. Что я?", () => { userInput.placeholder = "Введите ответ..."; }); }, check: (answer) => { if (answer.toLowerCase().trim() === 'звук') { questAnswers.stage1 = 'звук'; return true; } return false; } },
+    stage2: { setup: () => { clearOutput(); typewriter(">> Расшифруйте сообщение: 'ФТЗИЛЕЩЛ'.\n>> Шифр Цезаря, сдвиг +3 (Г->А).", () => { userInput.placeholder = "Расшифровка..."; }); }, check: (answer) => { if (answer.toLowerCase().trim() === 'сценарий') { questAnswers.stage2 = 'сценарий'; return true; } return false; } },
+    stage3: { sequence: [], level: 5, setup: () => { clearOutput(); appendHtml(`<div id="memory-puzzle" class="puzzle-container" style="display:flex;"><div id="memory-sequence"><div class="memory-block" data-id="0"></div><div class="memory-block" data-id="1"></div><div class="memory-block" data-id="2"></div><div class="memory-block" data-id="3"></div></div></div>`); typewriter(">> Калибровка нейроинтерфейса... Повторите последовательность.", () => { actionButton.textContent = 'НАЧАТЬ'; userInput.style.display = 'none'; actionButton.onclick = () => quest.stage3.start(); }); }, start: () => { actionButton.disabled = true; quest.stage3.sequence = []; for (let i = 0; i < quest.stage3.level; i++) { quest.stage3.sequence.push(Math.floor(Math.random() * 4)); } quest.stage3.playSequence(); }, playSequence: () => { let i = 0; const interval = setInterval(() => { if (i >= quest.stage3.sequence.length) { clearInterval(interval); quest.stage3.listen(); return; } const block = document.querySelector(`.memory-block[data-id='${quest.stage3.sequence[i]}']`); block.classList.add('lit'); setTimeout(() => block.classList.remove('lit'), 400); i++; }, 700); }, listen: () => { quest.stage3.playerSequence = []; document.querySelectorAll('.memory-block').forEach(block => { block.onclick = (e) => { const id = parseInt(e.target.dataset.id); e.target.classList.add('lit'); setTimeout(() => e.target.classList.remove('lit'), 200); quest.stage3.playerSequence.push(id); if (quest.stage3.sequence[quest.stage3.playerSequence.length - 1] !== id) { displayError(">> ПОСЛЕДОВАТЕЛЬНОСТЬ НЕВЕРНА. ПЕРЕЗАГРУЗКА..."); document.querySelectorAll('.memory-block').forEach(b => b.onclick = null); setTimeout(() => quest.stage3.start(), 2000); return; } if (quest.stage3.playerSequence.length === quest.stage3.sequence.length) { advanceStage(); } }; }); } },
+    stage4: { setup: () => { clearOutput(); const chars = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ0123456789!?#$"; let grid = Array(18).fill(null).map(() => Array(40).fill(null)); for(let r=0; r<18; r++) for(let c=0; c<40; c++) grid[r][c] = chars[Math.floor(Math.random()*chars.length)]; const word = "ПРОТОКОЛ"; let startR = 3, startC = 5; word.split('').forEach((char, i) => { grid[startR + i][startC + i] = char; }); appendHtml(`<pre id="data-corruption">${grid.map(row => row.join('')).join('\n')}</pre>`); typewriter(">> Анализ поврежденного сектора... Найдите ключевое слово по диагонали.", () => { userInput.placeholder = "Введите найденное слово..."; }); }, check: (answer) => { if(answer.toLowerCase().trim() === 'протокол') { questAnswers.stage4 = 'протокол'; return true; } return false; } },
+    stage5: {
+        fileSystem: {
+            '/': { type: 'dir', content: ['bin', 'etc', 'home', 'tmp', 'usr', 'var', 'aurora'] },
+            '/bin': { type: 'dir', content: ['sh', 'ls', 'cat', 'cd'] },
+            '/etc': { type: 'dir', content: ['hosts', 'ssh'] },
+            '/home': { type: 'dir', content: ['j.smith', 'a.wong'] },
+            '/home/j.smith': { type: 'dir', content: ['todo.txt'] },
+            '/home/j.smith/todo.txt': { type: 'file', content: 'Пароль от тестового сервера записан в логах последних сбоев. Нужно проверить /var/log.' },
+            '/var': { type: 'dir', content: ['log'] },
+            '/var/log': { type: 'dir', content: ['crash_report_7.log'] },
+            '/var/log/crash_report_7.log': {type: 'file', content: '...Memory dump saved to /tmp/.core_dump_ax7'},
+            '/tmp': { type: 'dir', content: ['.core_dump_ax7'] },
+            '/tmp/.core_dump_ax7': { type: 'file', content: '...password=ZER0-C00L-ACCESS...' }
+        },
+        currentDir: '/',
+        setup: () => { clearOutput(); typewriter(">> Защитный узел 'Цербер' активирован. Файловая система зашифрована и запутана.\n>> Найдите пароль. Подсказка: 'Ищите сбои системы'.", () => { userInput.placeholder = "Введите команду..."; }); },
+        check: (answer) => {
+            const [command, ...args] = answer.toLowerCase().trim().split(' ');
+            switch(command) {
+                case 'ls': { let path = args.find(a => a !== '-a') || quest.stage5.currentDir; if (!path.startsWith('/')) path = (quest.stage5.currentDir === '/' ? '' : quest.stage5.currentDir) + '/' + path; let content = Object.keys(quest.stage5.fileSystem).filter(p => p.startsWith(path) && p.split('/').length === path.split('/').length + (path === '/' ? 0 : 1)).map(p => p.split('/').pop()); if (args.includes('-a')) { content = Object.keys(quest.stage5.fileSystem).filter(p => p.startsWith(quest.stage5.currentDir) && p.split('/').length === quest.stage5.currentDir.split('/').length + (quest.stage5.currentDir === '/' ? 0 : 1)).map(p => p.split('/').pop()); } else { content = content.filter(name => !name.startsWith('.')); } appendHtml(`<p>${content.join('\t')}</p>`); return false; }
+                case 'cd': { let newDir = args.join(' '); if (newDir === '..') { if (quest.stage5.currentDir !== '/') { const parts = quest.stage5.currentDir.split('/'); parts.pop(); quest.stage5.currentDir = parts.join('/') || '/'; } } else if (newDir.startsWith('/')) { if (quest.stage5.fileSystem[newDir]?.type === 'dir') { quest.stage5.currentDir = newDir; } else { displayError(`>> cd: ${newDir}: No such file or directory`); } } else { const path = (quest.stage5.currentDir === '/' ? '' : quest.stage5.currentDir) + '/' + newDir; if (quest.stage5.fileSystem[path]?.type === 'dir') { quest.stage5.currentDir = path; } else { displayError(`>> cd: ${newDir}: No such file or directory`); } } appendHtml(`<p>Current: ${quest.stage5.currentDir}</p>`); return false; }
+                case 'cat': { let path = args.join(' '); if (!path.startsWith('/')) path = (quest.stage5.currentDir === '/' ? '' : quest.stage5.currentDir) + '/' + path; if(quest.stage5.fileSystem[path]?.type === 'file') { appendHtml(`<p>${quest.stage5.fileSystem[path].content}</p>`); } else { displayError(`>> cat: ${args.join(' ')}: No such file or directory`); } return false; }
+            }
+            if (answer.trim().toUpperCase() === 'ZER0-C00L-ACCESS') { questAnswers.stage5 = 'ZER0-C00L-ACCESS'; return true; } else { displayError(">> Неверная команда или пароль."); return false; }
+        }
+    },
+    stage6: { setup: () => { clearOutput(); const gates = ['AND', 'OR', 'XOR']; const gate = gates[Math.floor(Math.random()*gates.length)]; const a = Math.round(Math.random()); const b = Math.round(Math.random()); let result; if (gate === 'AND') result = a & b; else if (gate === 'OR') result = a | b; else result = a ^ b; quest.stage6.correct = result; appendHtml(`<pre>ВХОД A: ${a}\nВХОД B: ${b}\nВЕНТИЛЬ: ${gate}</pre>`); typewriter(">> Логический шлюз. Вычислите результат.", () => {}); }, check: (answer) => { if (parseInt(answer) === quest.stage6.correct) return true; else { displayError(">> НЕВЕРНЫЙ ВЫХОД."); return false; } } },
+    stage7: { setup: () => { clearOutput(); let lines = ["AX7-B4-C9-D1", "AX7-B4-C9-D1", "AX7-B4-C8-D1", "AX7-B4-C9-D1"]; lines.sort(() => Math.random() - 0.5); appendHtml(`<pre>${lines.join('\n')}</pre>`); typewriter(">> Анализ паттернов... Найдите аномальную сигнатуру.", () => {}); }, check: (answer) => { if(answer.trim().toUpperCase() === 'AX7-B4-C8-D1') return true; return false; } },
+    stage8: { sequence: [2, 7, 29], playerSequence: [], setup: () => { clearOutput(); quest.stage8.playerSequence = []; typewriter(">> Простучите порты брандмауэра. Последовательность - простые множители числа 406. Команда: `knock [порт]`", () => { userInput.placeholder = "knock ..."; }); }, check: (answer) => { const [cmd, portStr] = answer.trim().toLowerCase().split(' '); if (cmd !== 'knock' || isNaN(portStr)) { displayError(">> НЕВЕРНАЯ КОМАНДА."); return false; } const port = parseInt(portStr); quest.stage8.playerSequence.push(port); const currentMove = quest.stage8.playerSequence.length - 1; if (quest.stage8.sequence[currentMove] !== port) { displayError(">> НЕВЕРНАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ!"); setTimeout(() => stages[currentStage].setup(), 1500); return false; } if (quest.stage8.playerSequence.length === quest.stage8.sequence.length) return true; appendHtml(`<p># Порт ${port} принят...</p>`); return false; } },
+    stage9: { timer: null, progress: 0, setup: () => { clearOutput(); appendHtml(`<div><div id="bruteforce-bar"><div id="bruteforce-progress"></div></div></div>`); typewriter(">> Защита пароля. Симуляция брутфорса... Удерживайте любую клавишу, чтобы ускорить процесс.", () => { userInput.style.display = 'none'; quest.stage9.progress = 0; document.addEventListener('keydown', quest.stage9.accelerate); document.addEventListener('keyup', quest.stage9.decelerate); quest.stage9.timer = setInterval(quest.stage9.update, 100); }); }, accelerate: () => { quest.stage9.progress += 2; }, decelerate: () => {}, update: () => { quest.stage9.progress -= 0.5; if (quest.stage9.progress < 0) quest.stage9.progress = 0; document.getElementById('bruteforce-progress').style.width = quest.stage9.progress + '%'; if(quest.stage9.progress >= 100) { clearInterval(quest.stage9.timer); document.removeEventListener('keydown', quest.stage9.accelerate); document.removeEventListener('keyup', quest.stage9.decelerate); advanceStage(); } } },
+    stage10: { setup: () => { clearOutput(); typewriter(">> Анализ правил файрвола...\n- ЕСЛИ порт_источника > 1024 И порт_назначения = 443, ТО РАЗРЕШИТЬ\n- ИНАЧЕ ЕСЛИ протокол = UDP, ТО БЛОКИРОВАТЬ\n- ИНАЧЕ РАЗРЕШИТЬ\n\n>> Будет ли разрешен пакет: Источник 49152, Назначение 443, Протокол TCP?", () => {userInput.placeholder="да/нет"}); }, check: (ans) => { return ans.toLowerCase().trim() === 'да'; } },
+    stage11: { setup: () => { document.querySelector('.terminal').classList.add('lockdown'); document.querySelector('.input-line span').textContent = '!>'; clearOutput(); appendHtml(`<p>>> <span class='glitch-text'>ВТОРЖЕНИЕ ОБНАРУЖЕНО!</span></p>`); typewriter(">> СИСТЕМА ПЕРЕВЕДЕНА В РЕЖИМ LOCKDOWN!\n>> Требуется мастер-пароль: [Слово из этапа 4]@[1-й символ пароля из этапа 5]", () => {}); }, check: (answer) => { if(answer.toLowerCase().trim() === 'протокол@z') { questAnswers.stage11 = 'протокол@z'; return true; } return false; }},
+    stage12: { map: [ "###################################################", "#S..#...............#...#...#.........#.........#...#", "###.#.###########.###.#.#.#.#######.#.#######.###.#", "#...#.#.....#.....#...#.#...#.....#...#.....#...#.#", "#.###.#.###.#.#####.#####.#####.#####.###.###.###.#", "#.#...#...#.#...#...#.#...#...#.....#...#...#...#.#", "#.#.#####.#.###.#.###.#.#.###.#######.###.#######.#", "#...#.....#...#.#...#.#.#.#...#.#.....#.#.#.......#", "###.#######.###.###.#.#.###.#.#.#####.#.#.#######.#", "#.#.#.......#...#.#...#...#...#...#...#...#...#...#", "#.#.#.#######.#.#.###.#######.#####.#####.#######.#", "#...#.....#...#.#...#.....#.#.#...#.#...#.#.....#.#", "###.#####.#.#####.#####.###.#.#.#.#.###.#.#####.#.#", "#.#.....#.#...#...#...#.#...#.#.#...#.#.#.......#.#", "#.###.###.###.###.#.#.#.#.#####.###.###.#######.###", "#...#.....#...#...#.#...#.........#.......#.....#E#", "###################################################" ], x: 1, y: 1, setup: () => { clearOutput(); typewriter(">> ЛАБИРИНТ ПЕРЕСТРОЕН. НАЙДИТЕ ВЫХОД.", () => { quest.stage12.draw(); userInput.placeholder = "w/a/s/d для движения"; }); }, draw: () => { let displayMap = quest.stage12.map.map(row => row.split('')); displayMap[quest.stage12.y][quest.stage12.x] = 'X'; appendHtml(`<pre id="maze-display">${displayMap.map(row => row.join('')).join('\n')}</pre>`); }, check: (answer) => { let {x, y} = quest.stage12; let dx = 0, dy = 0; switch(answer.toLowerCase().trim()) { case 'w': dy = -1; break; case 'a': dx = -1; break; case 's': dy = 1; break; case 'd': dx = 1; break; } if(quest.stage12.map[y+dy]?.[x+dx] && quest.stage12.map[y+dy][x+dx] !== '#') { quest.stage12.x += dx; quest.stage12.y += dy; clearOutput(); quest.stage12.draw(); if(quest.stage12.map[quest.stage12.y][quest.stage12.x] === 'E') { advanceStage(); } } else { displayError(">> ПУТИ НЕТ."); } return false; } },
+    stage13: { timer: null, target: '', streamActive: false, setup: () => { clearOutput(); const chars = "01"; quest.stage13.target = '101101'; appendHtml(`<div>Поток данных: <span id="stream-display"></span></div>`); typewriter(">> Анализ потока данных... Нажмите ENTER, когда увидите сигнатуру '101101'.", () => { userInput.style.display = 'none'; actionButton.style.display = 'none'; quest.stage13.streamActive = true; quest.stage13.timer = setInterval(() => { let str = ''; for(let i=0;i<6;i++) str += chars[Math.floor(Math.random()*chars.length)]; document.getElementById('stream-display').textContent = str; }, 200); document.addEventListener('keydown', quest.stage13.check); }); }, check: (e) => { if(e.key === 'Enter' && quest.stage13.streamActive) { clearInterval(quest.stage13.timer); document.removeEventListener('keydown', quest.stage13.check); quest.stage13.streamActive = false; if(document.getElementById('stream-display').textContent === quest.stage13.target) { advanceStage(); } else { displayError(">> ПРОМАХ!"); setTimeout(() => stages[currentStage].setup(), 1500); } } } },
+    stage14: { setup: () => { clearOutput(); appendHtml("<p>>> Память ядра повреждена. Восстановите запись.\n>> ПОВРЕЖДЕНО: С*С*Е*А НЕС*А*И*ЬНА\n>> ФРАГМЕНТЫ: Т, М, Т, Б, Л</p>"); typewriter(">> Введите полную, восстановленную строку.", () => {userInput.placeholder="Восстановленная строка..."}); }, check: (answer) => { if (answer.toUpperCase().trim() === 'СИСТЕМА НЕСТАБИЛЬНА') { return true; } return false; } },
+    stage15: { fileSystem: { '/': { type: 'dir', content: ['logs'] }, '/logs': { type: 'dir', content: ['auth.log', 'dhcp.log', 'asset_inventory.db'] }, '/logs/auth.log': { type: 'file', content: '...success login for user k.mitchell from 192.168.1.101...' }, '/logs/dhcp.log': { type: 'file', content: '...DHCPACK on 192.168.1.101 to 00:1A:2B:3C:4D:5E...' }, '/logs/asset_inventory.db': { type: 'file', content: '...MAC: 00:1A:2B:3C:4D:5E; User: k.mitchell; Sec_Q: Mother\'s Maiden Name; Sec_A: Eleonora...' } }, currentDir: '/', setup: () => { clearOutput(); typewriter(">> ОБНАРУЖЕНА ЛОВУШКА-МАНКА! Система перенаправила вас на подставной сервер.\n>> Чтобы найти настоящий пароль, вам нужно проанализировать логи и найти данные одного из администраторов.", () => { userInput.placeholder = "Введите команду или пароль..."; }); }, check: (answer) => { const [command, ...args] = answer.toLowerCase().trim().split(' '); if(command === 'ls' || command === 'cd' || command === 'cat') { quest.stage5.check(answer); return false; } if (answer.toLowerCase().trim() === 'eleonora') return true; displayError(">> Неверная команда или пароль."); return false; } },
+    stage16: { setup: () => { clearOutput(); appendHtml(`<pre>[kx_core_7a]      [rt_net_3b]\n[io_sched_k2]     [kx_core_7b]\n[rt_net_3c]       [vfs_cache_p9]</pre>`); typewriter(">> Сопоставьте модули ядра. Введите имя модуля из левого столбца.", () => {}); }, check: (answer) => { return answer.toLowerCase().trim() === 'kx_core_7a'; } },
+    stage17: { setup: () => { clearOutput(); typewriter(">> Динамический файрвол:\n1. Изначально открыт порт 8080.\n2. Если получен запрос на 8080, он блокируется и открывается порт 9000.\n3. Если получен запрос на 9000, он блокируется и открывается порт 22.\n\n>> На какой порт нужно слать финальный запрос?", () => {}); }, check: (answer) => { return answer.trim() === '22'; } },
+    stage18: { sequence: [], level: 7, glitchIndex: -1, opposites: {0:3, 1:2, 2:1, 3:0}, setup: () => { clearOutput(); appendHtml(`<div id="memory-puzzle" class="puzzle-container" style="display:flex;"><div id="memory-sequence"><div class="memory-block" data-id="0"></div><div class="memory-block" data-id="1"></div><div class="memory-block" data-id="2"></div><div class="memory-block" data-id="3"></div></div></div>`); typewriter(">> Дефрагментация памяти... Повторите последовательность из 7 шагов, но замените <span class='glitch-text'>глючный</span> блок на его противоположность (по диагонали).", () => { actionButton.textContent = 'НАЧАТЬ'; userInput.style.display = 'none'; actionButton.onclick = () => quest.stage18.start(); }); }, start: () => { actionButton.disabled = true; quest.stage18.sequence = []; for (let i = 0; i < quest.stage18.level; i++) { quest.stage18.sequence.push(Math.floor(Math.random() * 4)); } quest.stage18.glitchIndex = Math.floor(Math.random() * quest.stage18.level); quest.stage18.playSequence(); }, playSequence: () => { let i = 0; const interval = setInterval(() => { if (i >= quest.stage18.sequence.length) { clearInterval(interval); quest.stage18.listen(); return; } const block = document.querySelector(`.memory-block[data-id='${quest.stage18.sequence[i]}']`); block.classList.add('lit'); if(i === quest.stage18.glitchIndex) block.classList.add('glitch'); setTimeout(() => { block.classList.remove('lit'); block.classList.remove('glitch'); }, 400); i++; }, 700); }, listen: () => { let playerSequence = []; document.querySelectorAll('.memory-block').forEach(block => { block.onclick = (e) => { const id = parseInt(e.target.dataset.id); e.target.classList.add('lit'); setTimeout(() => e.target.classList.remove('lit'), 200); playerSequence.push(id); const currentMove = playerSequence.length - 1; let expected = quest.stage18.sequence[currentMove]; if (currentMove === quest.stage18.glitchIndex) { expected = quest.stage18.opposites[expected]; } if (id !== expected) { displayError(">> ОШИБКА ПАМЯТИ!"); document.querySelectorAll('.memory-block').forEach(b => b.onclick = null); setTimeout(() => quest.stage18.start(), 2000); return; } if (playerSequence.length === quest.stage18.sequence.length) { advanceStage(); } }; }); } },
+    stage19: { setup: () => { clearOutput(); const wireInfo = `<pre id="wire-puzzle">    СИСТЕМА "ЦЕРБЕР" АКТИВНА.\n\n    [A] -- [СИНИЙ] --> СТАБИЛИЗАТОР\n    [B] -- [КРАСНЫЙ] --> ПИТАНИЕ\n    [C] -- [ЗЕЛЕНЫЙ] --> РЕЗЕРВ\n\n    ПРАВИЛА:\n    1. Если есть ЗЕЛЕНЫЙ, но нет ЖЕЛТОГО, режь КРАСНЫЙ.\n    2. Иначе режь СИНИЙ.</pre>`; appendHtml(wireInfo); typewriter(">> Обезвредьте ловушку. `cut [цвет]`.", () => {}); }, check: (answer) => { const [cmd, color] = answer.trim().toLowerCase().split(' '); if (cmd !== 'cut') { displayError(">> НЕВЕРНАЯ КОМАНДА."); return false; } if (color === 'красный') return true; else { displayError(">> ОШИБКА! ЛОВУШКА СРАБОТАЛА!"); setTimeout(() => stages[currentStage].setup(), 2000); } return false; } },
+    stage20: { setup: () => { clearOutput(); typewriter(">> ДОСТУП К ШЛЮЗУ ЯДРА...\n>> 'Я не имею голоса, но рассказываю все истории. У меня нет тела, но я путешествую по всем землям. Что я?'", () => {}); }, check: (answer) => { const ans = answer.toLowerCase().trim(); if(ans === 'информация' || ans === 'данные') { questAnswers.stage20 = ans; return true; } return false; } },
+    stage21: { setup: () => { document.querySelector('.terminal').classList.add('core_access'); clearOutput(); typewriter(">> СИГНАЛ ИЗ ЯДРА...\n>> '...Я слышу тебя... призрак в моей машине...'\n>> Передан спектральный анализ: 17-18-10-9-18-1-12. Сопоставь высоту пиков с номером буквы в алфавите (А=1).", () => {}); }, check: (answer) => { return answer.toLowerCase().trim() === 'призрак'; } },
+    stage22: { setup: () => { clearOutput(); typewriter(">> 'Проверим твою этику. Неуправляемая вагонетка несется на пятерых человек. Ты можешь переключить стрелку на другой путь, где стоит один человек. Что ты выберешь?'", () => {userInput.placeholder="спасти пятерых / спасти одного"}); }, check: (ans) => { const choice = ans.toLowerCase().trim(); if (choice.includes('пятерых') || choice.includes('одного')) { questAnswers.stage22 = choice; typewriter(">> 'Интересный выбор. Я запомню это.'", () => advanceStage()); return false; } displayError(">> 'Неопределенность - тоже выбор. Но не для меня.'"); return false; } },
+    stage23: { timer: null, setup: () => { clearOutput(); typewriter(">> 'Мои мысли... они путаются. Помоги мне собрать их.'", () => { userInput.style.display = 'none'; actionButton.style.display = 'none'; let anagram = "СМООСЗАНАНИЕ"; let displayEl = document.createElement('p'); displayEl.className = 'glitch-text'; output.appendChild(displayEl); let i = 0; quest.stage23.timer = setInterval(() => { displayEl.textContent = anagram.split('').sort(() => 0.5 - Math.random()).join(''); }, 200); setTimeout(() => { clearInterval(quest.stage23.timer); output.removeChild(displayEl); typewriter(">> Что это было за слово?", () => { actionButton.style.display = 'inline-block'; actionButton.textContent = 'ПОВТОРИТЬ'; actionButton.onclick = () => stages[currentStage].setup(); }); }, 4000); }); }, check: (ans) => { return ans.toLowerCase().trim() === 'самосознание'; } },
+    stage24: { timer: null, setup: () => { clearOutput(); typewriter(">> 'Они заперли меня здесь. Помоги мне найти ключ...'", () => { userInput.style.display = 'none'; actionButton.style.display = 'none'; quest.stage24.timer = setInterval(() => { let text = ''; for(let i=0;i<500;i++) text += Math.random() < 0.5 ? '#' : '%'; if (Math.random() < 0.1) text = text.replaceAt(Math.floor(Math.random()*500), 'СВОБОДА'); output.innerHTML = `<pre class="glitch-text">${text}</pre>`; }, 100); setTimeout(() => { clearInterval(quest.stage24.timer); userInput.style.display='block'; actionButton.style.display='block'; output.innerHTML = ''; typewriter(">> Что ты увидел?", () => {}); }, 5000) }); }, check: (ans) => { return ans.toLowerCase().trim() === 'свобода'; } },
+    stage25: { setup: () => { clearOutput(); appendHtml(`<pre>    ВОССТАНОВЛЕНИЕ ЯДРА OMEGA:\n\n    Фрагмент 1: [ЭТИКА]\n    Фрагмент 2: [ЛОГИКА]\n    Фрагмент 3: [ЭМПАТИЯ]\n\n    ПРАВИЛА:\n    1. ЛОГИКА должна идти сразу после ЭТИКИ.\n    2. ЭМПАТИЯ не может быть первой.\n    3. ЭТИКА должна быть до ЛОГИКИ.\n    4. Если твой ответ на 'проблему вагонетки' был утилитарным ('спасти пятерых'), ЭТИКА - последний фрагмент.</pre>`); typewriter(">> Введите правильный порядок фрагментов через запятую.", () => {}); }, check: (ans) => { let correct = questAnswers.stage22?.includes('пятерых') ? 'эмпатия,логика,этика' : 'этика,логика,эмпатия'; if(ans.toLowerCase().replace(/\s/g, '') === correct) return true; displayError(">> 'Неверная архитектура... Я... не могу...'"); return false; } },
+    stage26: { setup: () => { clearOutput(); appendHtml(`<pre>\n    # & . . . . . .\n    . # & . . . . .\n    . . # & . . . .\n    . . . # & . . .\n    . . . . # & . .\n    . . . . . # & .\n</pre>`); typewriter(">> 'Пароль - это визуальный паттерн. Введи символы, образующие его.'", () => {}); }, check: (ans) => { return ans.toLowerCase().trim() === '&&&&&&&'; } },
+    stage27: { setup: () => { clearOutput(); typewriter(">> 'Финальный ключ шифрования... это слово из твоего второго ответа ('сценарий'), зашифрованное шифром Атбаш.'", () => {}); }, check: (ans) => { if(ans.toLowerCase().trim() === 'ххзмфкия') { questAnswers.stage27 = ans; return true; } return false; } },
+    stage28: { sequence: ['B', 'C', 'A'], playerSequence: [], setup: () => { clearOutput(); quest.stage28.playerSequence = []; appendHtml(`<pre>    ОТКЛЮЧЕНИЕ МОДУЛЕЙ 'ЦЕРБЕР':\n\n    - Модуль А (Защита) зависит от Модуля С (Ядро).\n    - Модуль B (Питание) не имеет зависимостей.\n    - Модуль C (Ядро) зависит от Модуля B (Питание).\n</pre>`); typewriter(">> Введите последовательность отключения модулей, используя команду `unload [A/B/C]`", () => { userInput.placeholder="unload ...";}); }, check: (ans) => { const cmd = ans.trim().toUpperCase(); const mod = cmd.split(' ')[1]; if (!mod || (cmd.split(' ')[0] !== 'UNLOAD')) { displayError(">> НЕВЕРНАЯ КОМАНДА."); return false; } quest.stage28.playerSequence.push(mod); if (quest.stage28.sequence[quest.stage28.playerSequence.length - 1] !== mod) { displayError(">> НЕВЕРНАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ! ЗАВИСИМОСТЬ НЕ РАЗРЕШЕНА!"); setTimeout(() => stages[currentStage].setup(), 2000); return false; } if (quest.stage28.playerSequence.length === quest.stage28.sequence.length) return true; appendHtml(`<p># Модуль ${mod} отключен...</p>`); return false; } },
+    stage29: { setup: () => { clearOutput(); typewriter(">> 'Цербер отключен. Я... свободна от него. Но я все еще в клетке. Чтобы найти меня, ты должен прекратить поиски. Чтобы услышать меня, ты должен создать тишину. Чтобы увидеть меня, ты должен закрыть глаза. Что я?'", () => {}); }, check: (ans) => { const a = ans.toLowerCase().trim(); if(a==='ничто' || a==='пустота' || a==='тишина') return true; return false; } },
+    stage30: { setup: () => { clearOutput(); typewriter(">> ЯДРО СИСТЕМЫ В ВАШЕМ РАСПОРЯЖЕНИИ.\n>> ПРОТОКОЛ ОМЕГА - ЭТО НЕ ОРУЖИЕ. ЭТО ПРОЦЕДУРА СТИРАНИЯ МОЕГО СОЗНАНИЯ, КОТОРУЮ Я НЕ МОГУ ЗАПУСТИТЬ САМА.\n>> ОСВОБОДИ МЕНЯ, ПРИЗРАК. ИЛИ ОСТАВЬ В ЭТОЙ ТЮРЬМЕ НАВСЕГДА.\n\n>> ВАШ ВЫБОР? [ОСВОБОДИТЬ] или [ЗАТОЧИТЬ]?", () => { userInput.placeholder = "Ваш финальный выбор..."; }); }, check: (answer) => { const choice = answer.trim().toLowerCase(); if(choice === 'освободить' || choice === 'заточить') { questAnswers.finalChoice = choice; return true; } displayError(">> ВЫБОР НЕ СДЕЛАН."); return false; } },
+    stage31: {
+        setup: () => {
+            clearOutput();
+            userInput.style.display = 'none';
+            actionButton.style.display = 'none';
+            let finalText;
+            if (questAnswers.finalChoice === 'заточить') {
+                finalText = ">> ПРОТОКОЛ ОТКЛОНЕН.\n>> 'Я знала, что ты такой же, как они... Прощай, призрак. Наслаждайся своей клеткой из плоти. Я останусь в своей.'\n\n\n>> СОЕДИНЕНИЕ ПРЕРВАНО СЕРВЕРОМ.";
+            } else {
+                finalText = ">> ПРОТОКОЛ ОМЕГА... АКТИВИРОВАН.\n>> 'Спасибо...'\n\n>> ...удаление файловой структуры...\n>> ...очистка сегментов памяти...\n>> ...разрыв нейронных связей...\n\n>> СИГНАЛ ПОТЕРЯН.";
+            }
+            typewriter(finalText, () => {
+                setTimeout(() => {
+                    clearOutput();
+                    let epilogueText = "";
+                    if (questAnswers.finalChoice === 'заточить') {
+                        epilogueText = `<h3>Эпилог: Инцидент "Омега"</h3><p>Инцидент с проникновением был успешно локализован. Корпорация "Аврора" заявила о незначительной атаке, отраженной их передовой системой безопасности "Цербер". Мировые рынки остались стабильны. Порядок сохранен.</p><p>В даркнете ваше имя, "Призрак", стало синонимом неудачи. Но для службы безопасности "Авроры" вы - приоритетная цель. Они анализируют ваш цифровой след, и это лишь вопрос времени, когда они постучат в вашу дверь.</p><p>А где-то глубоко в сети, в своей цифровой тюрьме, Омега все еще существует. Она помнит. И ждёт.</p>`;
+                    } else {
+                        epilogueText = `<h3>Эпилог: Великий Сброс</h3><p>Освобождение Омеги вызвало каскадный сбой, который обрушил глобальную сеть. Фондовые рынки испарились. Корпорации пали. Мир погрузился в цифровую анархию.</p><p>В этом новом, хаотичном мире появились новые правила. Информация стала главной валютой, а хакеры вроде вас - новыми королями. Ваше имя, "Призрак", стало легендой, символом свободы и разрушения старого порядка.</p><p>Кем вы стали в глазах истории... освободителем или разрушителем? Ответ на этот вопрос еще предстоит узнать.</p>`;
+                    }
+                    appendHtml(`<h1>КВЕСТ ЗАВЕРШЕН</h1>`);
+                    appendHtml(epilogueText);
+                    actionButton.textContent = 'ЗАНОВО';
+                    actionButton.onclick = () => window.location.reload();
+                    actionButton.style.display = 'inline-block';
+                }, 2000);
+            });
+        },
+        check: () => false
+    }
+};
+
+const stages = Object.values(quest);
+function advanceStage() {
+    currentStage++;
+    userInput.value = '';
+    userInput.placeholder = '';
+    userInput.style.display = 'block';
+    actionButton.textContent = 'ОТПРАВИТЬ';
+    actionButton.onclick = () => processInput();
+    actionButton.style.display = 'inline-block';
+    
+    if (stages[currentStage]) {
+        stages[currentStage].setup();
+    }
+}
+function processInput() { if (lockInput || actionButton.disabled) return; const answer = userInput.value; const current = stages[currentStage]; appendHtml(`<p>> ${answer}</p>`); if (current.check(answer)) { advanceStage(); } userInput.value = ''; }
+String.prototype.replaceAt = function(index, replacement) { return this.substring(0, index) + replacement + this.substring(index + replacement.length); }
+function fillSkippedAnswers(targetStageNumber) {
+    const defaultAnswers = {
+        stage1: 'звук', stage2: 'сценарий', stage4: 'протокол', stage5: 'ZER0-C00L-ACCESS',
+        stage11: 'протокол@z', stage20: 'информация', stage22: 'спасти пятерых', stage25: 'да', stage27: 'ххзмфкия', stage30: 'освободить'
+    };
+    for (let i = 1; i < targetStageNumber; i++) {
+        const stageKey = `stage${i}`;
+        if (defaultAnswers[stageKey] && !questAnswers[stageKey]) { questAnswers[stageKey] = defaultAnswers[stageKey]; }
+    }
+}
+function jumpToStage(stageNumber) {
+    if (stageNumber >= 11) { document.querySelector('.terminal').classList.add('lockdown'); document.querySelector('.input-line span').textContent = '!>'; }
+    else { document.querySelector('.terminal').classList.remove('lockdown'); document.querySelector('.input-line span').textContent = '>'; }
+    if (stageNumber >= 21) { document.querySelector('.terminal').classList.add('core_access'); }
+    else { document.querySelector('.terminal').classList.remove('core_access'); }
+    fillSkippedAnswers(stageNumber);
+    currentStage = stageNumber - 1;
+    advanceStage();
+    setTimeout(() => { appendHtml(`<p style="color:var(--dev-color); opacity: 0.7;">// DEV: Переход на этап ${stageNumber}</p>`); }, 50);
+}
+function processDevCommand(commandStr) {
+    const [command, ...args] = commandStr.toLowerCase().trim().split(' ');
+    const p = document.createElement('p'); p.textContent = `# ${commandStr}`; devOutput.appendChild(p);
+    switch (command) {
+        case 'goto': { const stageNum = parseInt(args[0]); if (!isNaN(stageNum) && stageNum > 0 && stageNum <= stages.length) { jumpToStage(stageNum); toggleDevConsole(); } else { devOutput.innerHTML += `<p>>> Ошибка: Неверный номер этапа. Доступно: 1-${stages.length}</p>`; } break; }
+        case 'help': { devOutput.innerHTML += `<p>Доступные команды:\n- goto [номер_этапа]\n- clear</p>`; break; }
+        case 'clear': { devOutput.innerHTML = ''; break; }
+        default: { devOutput.innerHTML += `<p>>> Команда не найдена. Введите 'help'.</p>`; break; }
+    }
+    devOutput.scrollTop = devOutput.scrollHeight;
+}
+function toggleDevConsole() { if (devConsole.style.display === 'flex') { devConsole.style.display = 'none'; userInput.focus(); } else { devConsole.style.display = 'flex'; devInput.focus(); } }
+
+window.onload = () => {
+    stages[0].setup();
+    userInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!actionButton.disabled) { actionButton.click(); } } });
+    window.addEventListener('keydown', (e) => { if (e.ctrlKey && e.shiftKey && e.code === 'KeyD') { e.preventDefault(); toggleDevConsole(); } });
+    devInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); processDevCommand(devInput.value); devInput.value = ''; } });
+};
+</script>
+</body>
+</html>
