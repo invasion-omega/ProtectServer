@@ -33,8 +33,37 @@
             font-family: 'VT323', monospace;
             font-size: 22px; height: 100%; overflow: hidden;
             display: flex; align-items: center; justify-content: center;
+            color: var(--main-color);
+            text-shadow: 0 0 5px var(--glow-color);
         }
         
+        #boot-screen {
+            width: 100%;
+            text-align: center;
+        }
+
+        #boot-text {
+            opacity: 0;
+            animation: boot-text-flicker 3s forwards;
+            animation-delay: 0.5s;
+        }
+
+        #progress-bar-container {
+            width: 50%;
+            height: 20px;
+            border: 2px solid var(--main-color);
+            margin: 20px auto;
+            padding: 2px;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--main-color);
+            animation: loading-bar 2s ease-in-out forwards;
+            animation-delay: 3.5s;
+        }
+
         .vignette {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             box-shadow: 0 0 200px rgba(0,0,0,0.9) inset;
@@ -51,16 +80,35 @@
             flex-direction: column; position: relative;
             transition: border-color 0.8s ease, box-shadow 0.8s ease, background-color 0.8s ease;
             color: var(--main-color);
+            display: none; /* Initially hidden for boot sequence */
         }
         
+        .stage-transition-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            z-index: 2000;
+            font-size: 1.2em;
+        }
+        
+        #transition-text {
+            line-height: 1.8em;
+        }
+
         /* --- Стили тем --- */
-        .theme-red.lockdown { --main-color: var(--lockdown-main-color); --glow-color: var(--lockdown-glow-color); animation: lockdown-pulse 1.5s infinite; }
+        .theme-red.lockdown { --main-color: var(--lockdown-main-color); --glow-color: var(--lockdown-glow-color); animation: lockdown-pulse 1.5s infinite, screen-shake 0.2s 3; }
         .theme-ghost { --main-color: var(--ghost-main-color); --glow-color: var(--ghost-glow-color); animation: ghost-pulse 2.5s infinite ease-in-out; }
         .theme-golden { --main-color: var(--golden-main-color); --glow-color: var(--golden-glow-color); animation: golden-sheen 3s infinite; }
         .theme-rainbow { animation: rainbow-cycle 4s linear infinite; }
         .theme-shutdown { animation: final-shutdown-pulse 2.5s infinite ease-in-out; }
+        .theme-transition-glitch { animation: transition-glitch-cycle 0.5s infinite; }
 
         /* --- Анимации --- */
+        @keyframes boot-text-flicker { 0%, 10% { opacity: 0; } 1%, 11% { opacity: 1; } 20%, 40% { opacity: 0; } 21%, 41% { opacity: 1; } 50%, 100% { opacity: 1; } }
+        @keyframes loading-bar { from { width: 0%; } to { width: 100%; } }
         @keyframes blink { from, to { background-color: transparent; } 50% { background-color: var(--main-color); } }
         @keyframes flicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.95; } }
         @keyframes text-fade-in { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
@@ -71,6 +119,8 @@
         @keyframes rainbow-cycle { 0% { border-color: #00FF41; box-shadow: 0 0 25px rgba(0, 255, 65, 0.7); } 25% { border-color: #ff4141; box-shadow: 0 0 25px rgba(255, 65, 65, 0.7); } 50% { border-color: #e0f0ff; box-shadow: 0 0 25px rgba(173, 216, 230, 0.8); } 75% { border-color: #FFD700; box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); } 100% { border-color: #00FF41; box-shadow: 0 0 25px rgba(0, 255, 65, 0.7); } }
         @keyframes rainbow-text-anim { to { background-position: -200% center; } }
         @keyframes final-shutdown-pulse { 0% { background: var(--bg-color); border-color: var(--ghost-main-color); box-shadow: 0 0 25px var(--ghost-glow-color); } 50% { background: #e0f0ff; border-color: #fff; box-shadow: 0 0 50px #fff, 0 0 20px #e0f0ff inset; } 100% { background: var(--bg-color); border-color: var(--ghost-main-color); box-shadow: 0 0 25px var(--ghost-glow-color); } }
+        @keyframes screen-shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 25% { transform: translate(-1px, -2px) rotate(-0.5deg); } 50% { transform: translate(-2px, 0px) rotate(0.5deg); } 75% { transform: translate(2px, 2px) rotate(0deg); } 100% { transform: translate(1px, -1px) rotate(0.5deg); } }
+        @keyframes transition-glitch-cycle { 0% { border-color: #ff4141; } 33% { border-color: #e0f0ff; } 66% { border-color: #00FF41; } 100% { border-color: #ff4141; } }
 
         .rainbow-text { background-image: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: rainbow-text-anim 3s linear infinite; font-weight: bold; }
 
@@ -80,12 +130,12 @@
         .input-line { display: flex; padding: 0 15px 15px 15px; align-items: center; border-top: 1px solid rgba(0,255,65,0.2); margin-top: auto;}
         .input-line #prompt { margin-right: 8px; white-space: nowrap; }
         .prompt-path { color: #87ceeb; }
-        #userInput { background: transparent; border: none; color: var(--main-color); font-family: inherit; font-size: inherit; flex-grow: 1; }
+        #userInput { background: transparent; border: none; color: var(--main-color); font-family: inherit; font-size: inherit; flex-grow: 1; text-shadow: inherit; }
         #userInput:focus { outline: none; box-shadow: 0 0 8px var(--main-color) inset; }
         .cursor { display: inline-block; width: 12px; height: 22px; background: var(--main-color); animation: blink 1s step-end infinite; margin-left: 5px; }
         
-        #actionButton, #repeatButton { margin-left: 15px; background: transparent; border: 1px solid var(--main-color); color: var(--main-color); padding: 5px 15px; cursor: pointer; font-family: inherit; font-size: 18px; transition: background-color 0.2s, color 0.2s, box-shadow 0.2s; }
-        #actionButton:hover, #repeatButton:hover { background: var(--main-color); color: var(--bg-color); box-shadow: 0 0 10px var(--glow-color); }
+        #actionButton, #repeatButton { margin-left: 15px; background: transparent; border: 1px solid var(--main-color); color: var(--main-color); padding: 5px 15px; cursor: pointer; font-family: inherit; font-size: 18px; transition: background-color 0.2s, color 0.2s, box-shadow 0.2s; text-shadow: inherit; }
+        #actionButton:hover, #repeatButton:hover { background: var(--main-color); color: var(--bg-color); box-shadow: 0 0 10px var(--glow-color); text-shadow: none; }
         #actionButton:disabled, #repeatButton:disabled { opacity: 0.5; cursor: not-allowed; border-color: grey; color: grey; }
         #actionButton:disabled:hover, #repeatButton:disabled:hover { background: transparent; color: grey; box-shadow: none; }
         #repeatButton { display: none; }
@@ -96,7 +146,8 @@
         #memory-sequence { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; justify-content: center; }
         .memory-block { width: 50px; height: 50px; border: 2px solid var(--main-color); cursor: pointer; transition: background-color 0.2s, border-color 0.5s; }
         .memory-block.lit { background-color: var(--main-color); box-shadow: 0 0 10px var(--glow-color); }
-        .glitch-text { color: var(--main-color); text-shadow: 1px 1px var(--error-color), -1px -1px var(--dev-color); animation: glitch-anim 0.2s infinite; }
+        .glitch-text { display: inline-block; color: var(--main-color); text-shadow: 1px 1px var(--error-color), -1px -1px var(--dev-color); animation: glitch-anim 0.2s infinite; }
+        .error-glitch { animation: glitch-anim 0.3s 2; }
        
         .dev-console { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; height: 400px; background: rgba(10, 20, 30, 0.9); border: 2px solid var(--dev-color); box-shadow: 0 0 20px var(--dev-color); z-index: 1000; color: var(--dev-color); flex-direction: column; }
         .dev-header { padding: 5px 10px; background: var(--dev-color); color: #000; font-weight: bold; }
@@ -124,16 +175,32 @@
 
         #noise-display { font-size: 24px; text-align: center; letter-spacing: 4px; padding: 20px; line-height: 1.5em; background: #111; border: 1px dashed var(--main-color); word-break: break-all; }
 
-        #reassembly-puzzle .letter { display: inline-block; padding: 5px 8px; margin: 2px; border: 1px solid var(--main-color); cursor: pointer; transition: background-color 0.2s; }
-        #reassembly-puzzle .letter.selected { background-color: var(--main-color); color: var(--bg-color); }
-        
-        .choice-button { background: transparent; border: 1px solid var(--main-color); color: var(--main-color); padding: 8px 15px; cursor: pointer; font-family: inherit; font-size: 18px; margin: 5px; }
-        .choice-button:hover { background: var(--main-color); color: var(--bg-color); }
+        #reassembly-puzzle .letter { display: inline-block; padding: 5px 8px; margin: 2px; border: 1px solid var(--main-color); cursor: pointer; transition: background-color 0.2s, color 0.2s; }
+        #reassembly-puzzle .letter.selected { background-color: var(--main-color); color: var(--bg-color); text-shadow: none; }
+        #reassembly-puzzle .letter.correct-flash { background-color: #0f0; color: #000; text-shadow: none; }
+
+        .route-node { cursor: pointer; color: var(--dev-color); font-weight: bold; }
+        .route-node:hover { text-decoration: underline; text-shadow: 0 0 8px var(--dev-color); }
+        .route-node.selected { color: var(--golden-main-color); }
+
+        .choice-button { background: transparent; border: 1px solid var(--main-color); color: var(--main-color); padding: 8px 15px; cursor: pointer; font-family: inherit; font-size: 18px; margin: 5px; text-shadow: inherit;}
+        .choice-button:hover { background: var(--main-color); color: var(--bg-color); text-shadow: none; }
     </style>
 </head>
 <body>
     <div class="vignette"></div>
+
+    <div id="boot-screen">
+        <p id="boot-text">ATTEMPTING SECURE CONNECTION...</p>
+        <div id="progress-bar-container">
+            <div id="progress-bar"></div>
+        </div>
+    </div>
+
     <div class="terminal">
+        <div class="stage-transition-overlay">
+            <div id="transition-text"></div>
+        </div>
         <div class="scanlines"></div>
         <div class="terminal-header">A.C.S. TERMINAL :: ПРОТОКОЛ ОМЕГА</div>
         <div id="output"></div>
@@ -152,14 +219,33 @@
     </div>
 <script>
 // --- CORE GLOBALS AND UTILS ---
-const output = document.getElementById('output'); const userInput = document.getElementById('userInput'); const actionButton = document.getElementById('actionButton'); const repeatButton = document.getElementById('repeatButton'); const devConsole = document.getElementById('devConsole'); const devOutput = document.getElementById('devOutput'); const devInput = document.getElementById('devInput'); const promptEl = document.getElementById('prompt');
+const output = document.getElementById('output'); const userInput = document.getElementById('userInput'); const actionButton = document.getElementById('actionButton'); const repeatButton = document.getElementById('repeatButton'); const devConsole = document.getElementById('devConsole'); const devOutput = document.getElementById('devOutput'); const devInput = document.getElementById('devInput'); const promptEl = document.getElementById('prompt'); const terminal = document.querySelector('.terminal');
 let currentStage = 0; let lockInput = false; const questAnswers = {}; let playerName = 'Призрак'; let gameStartTime = new Date();
 
 function typewriter(text, onComplete, speed = 20, p_class = '') { lockInput = true; actionButton.disabled = true; let i = 0; const p = document.createElement('p'); if(p_class) p.className = p_class; output.appendChild(p); const interval = setInterval(() => { if (i < text.length) { p.innerHTML += text[i].replace(/\n/g, '<br>'); i++; output.scrollTop = output.scrollHeight; } else { clearInterval(interval); lockInput = false; actionButton.disabled = false; userInput.focus(); if (onComplete) onComplete(); } }, speed); }
+function typewriterToElement(element, text, onComplete, speed = 50) {
+    let i = 0;
+    element.innerHTML = '';
+    const interval = setInterval(() => {
+        if (i >= text.length) {
+            clearInterval(interval);
+            if (onComplete) onComplete();
+            return;
+        }
+        if (text.substring(i, i + 4).toLowerCase() === '<br>') {
+            element.innerHTML += '<br>';
+            i += 4;
+        } else {
+            element.innerHTML += text[i];
+            i++;
+        }
+    }, speed);
+}
 function clearOutput() { output.innerHTML = ''; }
 function appendHtml(html, scroll = true) { const div = document.createElement('div'); div.innerHTML = html; output.appendChild(div); if (scroll) output.scrollTop = output.scrollHeight; return div; }
-function displayError(message = ">> ОШИБКА ДОСТУПА. ПОПРОБУЙТЕ СНОВА.") { const p = document.createElement('p'); p.style.color = 'var(--error-color)'; p.innerHTML = message; output.appendChild(p); output.scrollTop = output.scrollHeight; }
+function displayError(message = ">> ОШИБКА ДОСТУПА. ПОПРОБУЙТЕ СНОВА.") { const p = document.createElement('p'); p.style.color = 'var(--error-color)'; p.innerHTML = `<span class="error-glitch">${message}</span>`; output.appendChild(p); output.scrollTop = output.scrollHeight; }
 function updatePrompt(path = '~') { promptEl.innerHTML = `${playerName}@aurora-node:<span class="prompt-path">${path}</span>$&nbsp;`; }
+function handlerFeedback(message, onComplete) { typewriter(`// HANDLER: ${message}`, onComplete, 25, 'dev-color'); }
 
 const rus = 'абвгдежзийклмнопрстуфхцчшщъыьэюя';
 function caesarTransform(str, shift, decrypt = false) { let result = ''; const direction = decrypt ? -1 : 1; for (let i = 0; i < str.length; i++) { const char = str[i]; const lowerChar = char.toLowerCase(); const index = rus.indexOf(lowerChar); if (index !== -1) { let newIndex = (index + (shift * direction) + rus.length) % rus.length; let newChar = rus[newIndex]; result += (char === lowerChar) ? newChar : newChar.toUpperCase(); } else { result += char; } } return result; }
@@ -182,7 +268,7 @@ function fileSystemHandler(stage, answer) {
     switch (command) {
         case 'ls': { const targetPath = resolvePath(pathArg || stage.currentDir); const dirContent = stage.fileSystem[targetPath]; if (!dirContent) { displayError(`ls: cannot access '${pathArg || ''}': No such file or directory`); return false; } if (dirContent.type !== 'dir') { displayError(`ls: cannot access '${pathArg || ''}': Not a directory`); return false; } let content = dirContent.content; if (!args.includes('-a')) { if (content.some(name => name.startsWith('.'))) { appendHtml(`<p style="color:var(--dev-color); opacity: 0.6;">// Обнаружены скрытые сущности. Используйте флаг '-a' для отображения.</p>`); } content = content.filter(name => !name.startsWith('.')); } appendHtml(`<p>${content.join('\t')}</p>`); return false; }
         case 'cd': { const targetPath = resolvePath(pathArg || '/home/insider'); const node = stage.fileSystem[targetPath]; if (node && node.type === 'dir') { stage.currentDir = targetPath; updatePrompt(targetPath); } else if (node && node.type !== 'dir') { displayError(`cd: ${pathArg}: Not a directory`); } else { displayError(`cd: ${pathArg}: No such file or directory`); } return false; }
-        case 'cat': { if (!pathArg) { displayError(`cat: Missing operand`); return false; } const targetPath = resolvePath(pathArg); const node = stage.fileSystem[targetPath]; if (node && node.type === 'file') { appendHtml(`<p>${node.content}</p>`); } else if (node && node.type === 'dir') { displayError(`cat: ${pathArg}: Is a directory`); } else { displayError(`cat: ${pathArg}: No such file or directory`); } return false; }
+        case 'cat': { if (!pathArg) { displayError(`cat: Missing operand`); return false; } const targetPath = resolvePath(pathArg); const node = stage.fileSystem[targetPath]; if (node && node.type === 'file') { typewriter(node.content, null, 15); } else if (node && node.type === 'dir') { displayError(`cat: ${pathArg}: Is a directory`); } else { displayError(`cat: ${pathArg}: No such file or directory`); } return false; }
     }
     return null;
 }
@@ -190,9 +276,8 @@ function fileSystemHandler(stage, answer) {
 // --- QUEST STAGES DEFINITION ---
 const quest = {
     stage0: {
-        subStage: 0,
+        transition: 'networkHop',
         setup: () => {
-            clearOutput();
             promptEl.textContent = '>';
             stages[0].subStage = 0;
             typewriter("AURORA CORP SECURE BOOT v3.14...\nQUANTUM CORE... OK\nMEMORY... OK\nSECURE CONNECTION ESTABLISHED.\n\n>> Обнаружен входящий пакет данных. Требуется ключ дешифрования. Название протокола операции?", () => { userInput.placeholder = "Введите ключ..."; });
@@ -217,427 +302,112 @@ const quest = {
             }
         }
     },
-    stage1: { setup: () => { clearOutput(); typewriter(`>> Вы внутри, ${playerName}. Внешняя оболочка 'Авроры' пробита.\n>> Первый шаг: осмотреться. Какой командой в UNIX/Linux можно посмотреть содержимое текущей директории?`, () => { userInput.placeholder = "Введите команду..."; }); }, check: (answer) => { if (answer.toLowerCase().trim() === 'ls') { questAnswers.stage1 = 'ls'; return true; } return false; } },
-    stage2: { puzzleType: 'caesar', toolName: 'Caesar-Decrypter-v1.2', installCommand: 'install caesar_decrypter', setup: () => { clearOutput(); typewriter(`>> Перехвачен фрагмент внутреннего протокола: 'ФЩИРГУЛМ'.\n>> Похоже на простой шифр Цезаря со сдвигом +3 (А->Г).\n>> Расшифруйте сообщение, чтобы понять их план.\n>> Доступны команды 'help' и '${stages[2].installCommand}'.`, () => { userInput.placeholder = "Расшифровка или команда..."; }); }, check: (answer) => { if(handleSpecialCommands(answer)) return false; if (answer.toLowerCase().trim() === 'сценарий') { questAnswers.stage2 = 'сценарий'; return true; } return false; } },
-    stage3: { sequence: [], level: 5, setup: () => { clearOutput(); appendHtml(`<div id="memory-puzzle" class="puzzle-container" style="display:flex; flex-direction:column; align-items:center;"><div id="memory-sequence"><div class="memory-block" data-id="0"></div><div class="memory-block" data-id="1"></div><div class="memory-block" data-id="2"></div><div class="memory-block" data-id="3"></div></div></div>`); typewriter(">> Система защиты 'Цербер' пытается сканировать ваш нейроинтерфейс.\n>> Пройдите калибровку, чтобы обмануть его. Повторите последовательность.", () => { actionButton.textContent = 'НАЧАТЬ'; userInput.style.display = 'none'; actionButton.onclick = () => stages[3].start(); }); }, start: function() { actionButton.disabled = true; this.sequence = []; for (let i = 0; i < this.level; i++) { this.sequence.push(Math.floor(Math.random() * 4)); } this.playSequence(); }, playSequence: function() { let i = 0; const interval = setInterval(() => { if (i >= this.sequence.length) { clearInterval(interval); this.listen(); return; } const block = document.querySelector(`.memory-block[data-id='${this.sequence[i]}']`); block.classList.add('lit'); setTimeout(() => block.classList.remove('lit'), 400); i++; }, 700); }, listen: function() { let playerSequence = []; document.querySelectorAll('.memory-block').forEach(block => { block.onclick = (e) => { const id = parseInt(e.target.dataset.id); e.target.classList.add('lit'); setTimeout(() => e.target.classList.remove('lit'), 200); playerSequence.push(id); if (this.sequence[playerSequence.length - 1] !== id) { displayError(">> ПОСЛЕДОВАТЕЛЬНОСТЬ НЕВЕРНА. 'Цербер' сбрасывает соединение..."); document.querySelectorAll('.memory-block').forEach(b => b.onclick = null); setTimeout(() => this.start(), 2000); return; } if (playerSequence.length === this.sequence.length) { advanceStage(); } }; }); } },
-    stage4: { logDumped: false, logData: `[NOISE] 7c43b1a2d5e... packet corrupt\n[SYNC] timestamp:2038.1.19.3.14.07 payload:DA checksum:OK\n[DATA] user_id:1138 packet_size:256 prio:low\n[NOISE] ff9a0e... re-routing buffer\n[AUTH] session_id: a7b3c9f0 failed (timeout)\n[SYNC] timestamp:2038.1.19.3.14.08 payload:2D checksum:OK\n[NOISE] 3b1a2d5e... garbage collection\n[DATA] status:pending recipient:core_monitor\n[SYNC] timestamp:2038.1.19.3.14.09 payload:C0 checksum:OK\n[NOISE] e5f1... kernel panic averted\n[SYNC] timestamp:2038.1.19.3.14.10 payload:58 checksum:OK\n[NOISE] a2d5e... end of stream`, netstatData: `<pre class="netstat-table">ПРОВЕРКА СЕТЕВЫХ СОЕДИНЕНИЙ...\n  PROTO  LOCAL ADDRESS      PORT     STATE\n  TCP    0.0.0.0            22       LISTEN (SSH)\n  TCP    0.0.0.0            80       LISTEN (HTTP)\n  UDP    127.0.0.1          53       ESTABLISHED\n  TCP    0.0.0.0            49152    ESTABLISHED // UNKNOWN_DATA_STREAM\n</pre>`, setup: () => { clearOutput(); stages[4].logDumped = false; typewriter(">> Анализ системных журналов не дал результатов — 'Цербер' заполнил их 'белым шумом'.\n>> Однако, наш инсайдер передал, что пытается установить **скрытый канал связи**,\n>> маскируя его под служебный трафик. Ваша задача: найти этот канал, проанализировать\n>> его содержимое и извлечь IP-адрес, который он передает. Это ключ к следующему узлу.\n\n>> Доступные команды: `netstat`, `log_dump [порт]`.", () => { userInput.placeholder = "Введите команду или IP-адрес..."; }); }, check: (answer) => { const cmd = answer.trim().toLowerCase(); const stage = stages[4]; if (cmd === 'netstat') { appendHtml(stage.netstatData); appendHtml("<p># Один из портов выглядит подозрительно. Он не соответствует стандартным службам.</p>"); return false; } if (cmd.startsWith('log_dump')) { const port = cmd.split(' ')[1]; if (port === '49152') { if (!stage.logDumped) { appendHtml(`<pre>${stage.logData}</pre>`); appendHtml("<p># Получен дамп трафика. Поток данных нестабилен, но некоторые пакеты помечены как [SYNC].\n# Возможно, в их полезной нагрузке (payload) и есть ключ. Формат данных в payload выглядит как шестнадцатеричный.</p>"); stage.logDumped = true; } else { displayError(">> Дамп трафика уже получен. Анализируйте имеющиеся данные."); } } else if (port) { displayError(`>> Анализ порта ${port}... трафик в норме, аномалий не обнаружено.`); } else { displayError(">> Укажите номер порта для команды log_dump."); } return false; } if (answer.trim() === '218.45.192.88') { questAnswers.stage4 = '218.45.192.88'; return true; } displayError(">> Неверная команда или IP-адрес. Используйте `netstat` или `log_dump` для сбора информации."); return false; } },
-    stage5: { fileSystem: { '/': { type: 'dir', content: ['bin', 'etc', 'home', 'opt', 'proc', 'usr', 'var'] }, '/home': { type: 'dir', content: ['insider'] }, '/home/insider': { type: 'dir', content: ['readme.txt'] }, '/home/insider/readme.txt': { type: 'file', content: "Я разбросал части ключа по системе, чтобы 'Цербер' их не нашел. Первая подсказка: ищи в логах, но не в обычных. Я перенаправил их во временное хранилище переменных данных. Проверь /var." }, '/var': { type: 'dir', content: ['log', 'spool', 'tmp'] }, '/var/log': { type: 'dir', content: ['system.log', 'auth.log', 'audit_trail.log'] }, '/var/log/system.log': { type: 'file', content: '...system rebooted...' }, '/var/log/auth.log': { type: 'file', content: '...failed login for root...' }, '/var/log/audit_trail.log': { type: 'file', content: "Они отслеживают стандартные журналы. Я спрятал следующую наводку в конфигурации системных резервных копий. Ищи в /etc." }, '/etc': { type: 'dir', content: ['hosts', 'network', 'security', 'backup.conf'] }, '/etc/hosts': { type: 'file', content: '127.0.0.1 localhost' }, '/etc/network': { type: 'dir', content: [] }, '/etc/security': { type: 'dir', content: [] }, '/etc/backup.conf': { type: 'file', content: "Еженедельный бэкап выполняется на изолированный раздел для опционального ПО. Проверь /opt." }, '/opt': { type: 'dir', content: ['secure_storage'] }, '/opt/secure_storage': { type: 'dir', content: ['note_to_self.txt'] }, '/opt/secure_storage/note_to_self.txt': { type: 'file', content: "Почти у цели. Первая часть ключа: ALPHA-GATE. Вторая часть спрятана там, где хранятся данные о запущенных процессах. Это место 'дышит' вместе с системой. Ищи там скрытый фрагмент." }, '/proc': { type: 'dir', content: ['1', '2', '3', 'cpuinfo', '.core_fragments'] }, '/proc/1': { type: 'dir', content: [] }, '/proc/2': { type: 'dir', content: [] }, '/proc/3': { type: 'dir', content: [] }, '/proc/cpuinfo': { type: 'file', content: '...Quantum Core active...' }, '/proc/.core_fragments': { type: 'dir', content: ['fragment_2.key'] }, '/proc/.core_fragments/fragment_2.key': { type: 'file', content: "-751" }, '/bin': { type: 'dir', content: ['ls', 'cat', 'cd'] }, '/usr': { type: 'dir', content: ['lib', 'bin'] }, '/var/spool': { type: 'dir', content: [] }, '/var/tmp': { type: 'dir', content: [] } }, currentDir: '/', setup: () => { clearOutput(); stages[5].currentDir = '/'; typewriter(">> Вы попали в изолированный сегмент файловой системы. Он обширен и запутан.\n>> Инсайдер оставил для вас **цепочку подсказок**. Ваша задача — пройти по этому следу,\n>> чтобы найти полный ключ доступа. Начните с домашней директории инсайдера\n>> (или введите `cd`, чтобы вернуться туда).\n\n>> Доступные команды: `ls`, `cd`, `cat`. Флаг `-a` для `ls` покажет скрытые файлы.", () => { userInput.placeholder = "Введите команду или ключ..."; updatePrompt(stages[5].currentDir); }); }, check: (answer) => { const fsResult = fileSystemHandler(stages[5], answer); if (fsResult !== null) return fsResult; const upperAns = answer.trim().toUpperCase(); if (upperAns === 'ALPHA-GATE') { displayError(">> Это только часть ключа. Продолжайте поиски."); return false; } if (upperAns === 'ALPHA-GATE-751') { questAnswers.stage5 = 'ALPHA-GATE-751'; return true; } displayError(">> Неверная команда или ключ доступа."); return false; } },
-    stage6: {
-        hintLevel: 0,
-        setup: () => { 
-            clearOutput();
-            stages[6].hintLevel = 0; 
-            appendHtml(`<pre>СИМУЛЯЦИЯ CPU:\n  let x = 5;  // 0101 в двоичной\n  x = x << 2; // Битовый сдвиг влево на 2</pre>`);
-            typewriter(">> 'Цербер' использует низкоуровневые вычисления для шифрования. Проанализируйте операцию,\n>> чтобы предсказать ключ. Какое значение будет у 'x' после выполнения?", () => {userInput.placeholder="Результат..."});
-        },
-        check: (answer) => {
-            if (answer.toLowerCase().trim() === 'hint') {
-                stages[6].hintLevel++;
-                let hintHtml = '';
-                switch(stages[6].hintLevel) {
-                    case 1:
-                        hintHtml = `// ПОДСКАЗКА 1: Операция '<<' (битовый сдвиг влево) — это быстрый способ умножения на 2.\n// Каждый сдвиг на 1 влево удваивает число. Сдвиг на 2 — это как умножение на 2 дважды.`;
-                        break;
-                    case 2:
-                        hintHtml = `// ПОДСКАЗКА 2: Попробуйте прямое вычисление. Начальное значение x = 5.\n// Сдвиг '<< 2' эквивалентен умножению на 4 (потому что 2 во второй степени = 4).\n// Что будет, если 5 умножить на 4?`;
-                        break;
-                    case 3:
-                        hintHtml = `// ПОДСКАЗКА 3 (ДВОИЧНЫЙ МЕТОД): В двоичной системе число 5 выглядит как '101'.\n// Сдвиг влево на 2 позиции ('<< 2') просто добавляет два нуля справа.\n// Получается '10100'. Переведите это двоичное число в десятичное.`;
-                        break;
-                    default:
-                        hintHtml = `// Больше подсказок нет. Вы почти у цели! Ответ очевиден.`;
-                }
-                appendHtml(`<p class="hint-table">${hintHtml}</p>`);
-                return false;
-            }
-            if (parseInt(answer) === 20) {
-                return true;
-            } else {
-                displayError(">> ОШИБКА ВЫЧИСЛЕНИЯ. Для помощи введите `hint`.");
-                return false;
-            }
-        }
-    },
-    stage7: {
-        state: '0O1N0I0S0L1U0S1H1A1Y0U0T1',
-        answer: 'ОНИ СЛУШАЮТ',
-        updateDisplay: function() {
-            const displayEl = document.getElementById('noise-display');
-            if (displayEl) {
-                displayEl.innerHTML = this.state;
-            } else {
-                appendHtml(`<div id="noise-display" class="puzzle-container" style="display:block;">${this.state}</div>`);
-            }
-        },
-        setup: function() {
-            clearOutput();
-            this.state = '0O1N0I0S0L1U0S1H1A1Y0U0T1';
-            typewriter(">> Перехвачен фрагмент данных, искаженный цифровыми помехами (0 и 1) и транслитерацией.\n>> Задача: восстановить исходное сообщение. Команды:\n>> `cleanse [0|1]` - убирает указанный тип помех.\n>> `translit` - преобразует латиницу в кириллицу.", () => {
-                this.updateDisplay();
-            });
-        },
-        check: function(answer) {
-            const [cmd, arg] = answer.trim().toLowerCase().split(' ');
-            if (cmd === 'cleanse') {
-                if (arg === '0' || arg === '1') {
-                    this.state = this.state.replace(new RegExp(arg, 'g'), '');
-                    appendHtml(`<p># Фильтр '${arg}' применен.</p>`);
-                    this.updateDisplay();
-                } else {
-                    displayError('>> Укажите цель для cleanse: 0 или 1');
-                }
-                return false;
-            }
-            if (cmd === 'translit') {
-                if (this.state.match(/[01]/)) {
-                    displayError('>> Невозможно выполнить транслитерацию. Сначала очистите все цифровые помехи.');
-                    return false;
-                }
-                const map = {'o':'о', 'n':'н', 'i':'и', 's':'с', 'l':'л', 'u':'у', 'h':'ш', 'a':'а', 'y':'ю', 't':'т'};
-                this.state = this.state.toLowerCase().split('').map(c => map[c] || c).join('').toUpperCase();
-                appendHtml('<p># Транслитерация завершена.</p>');
-                this.updateDisplay();
-                return false;
-            }
-            if (answer.trim().toUpperCase().replace(/\s/g, '') === this.answer.replace(/\s/g, '')) {
-                return true;
-            }
-            displayError('>> Неверная команда или сообщение.');
-            return false;
-        }
-    },
-    stage8: { sequence: [2, 7, 29], playerSequence: [], setup: () => { clearOutput(); stages[8].playerSequence = []; typewriter(">> Чтобы обойти брандмауэр, нужно простучать порты в правильной последовательности. Анализ показывает,\n>> что это простые множители числа 406. Команда: `knock [порт]`", () => { userInput.placeholder = "knock ..."; }); }, check: (answer) => { const [cmd, portStr] = answer.trim().toLowerCase().split(' '); if (cmd !== 'knock' || isNaN(portStr)) { displayError(">> НЕВЕРНАЯ КОМАНДА."); return false; } const port = parseInt(portStr); stages[8].playerSequence.push(port); const currentMove = stages[8].playerSequence.length - 1; if (stages[8].sequence[currentMove] !== port) { displayError(">> НЕВЕРНАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ! Брандмауэр сбросил попытку."); setTimeout(() => stages[currentStage].setup(), 1500); return false; } if (stages[8].playerSequence.length === stages[8].sequence.length) return true; appendHtml(`<p># Порт ${port} принят... Ожидание следующего.</p>`); return false; } },
-    stage9: { state: { freq: 50, amp: 50 }, target: { freq: [75, 85], amp: [30, 40] }, setup: () => { clearOutput(); stages[9].state = { freq: 50, amp: 50 }; appendHtml(`<div id="resonance-puzzle" class="puzzle-container"></div>`); typewriter(">> Обнаружен резонансный замок. Чтобы пройти, нужно откалибровать сигнал, попав в 'зеленую зону' по частоте и амплитуде.\n>> Доступные команды: `inc freq`, `dec freq`, `inc amp`, `dec amp`.\n>> Шаг изменения: 5 единиц.", () => { stages[9].updateDisplay(); }); }, updateDisplay: () => { const { freq, amp } = stages[9].state; const { freq: tFreq, amp: tAmp } = stages[9].target; const display = document.getElementById('resonance-puzzle'); const freqOk = freq >= tFreq[0] && freq <= tFreq[1]; const ampOk = amp >= tAmp[0] && amp <= tAmp[1]; display.innerHTML = `<pre>КАЛИБРОВКА СИГНАЛЬНОГО РЕЗОНАНСА\n\nЦЕЛЬ: Частота [${tFreq[0]}-${tFreq[1]}] / Амплитуда [${tAmp[0]}-${tAmp[1]}]\n\nТЕКУЩИЕ ЗНАЧЕНИЯ:\n  ЧАСТОТА:   ${freq} <span style="color:${freqOk ? 'var(--main-color)' : 'var(--error-color)'}">${freqOk ? 'СТАБИЛЬНО' : 'НЕСТАБИЛЬНО'}</span>\n  АМПЛИТУДА: ${amp} <span style="color:${ampOk ? 'var(--main-color)' : 'var(--error-color)'}">${ampOk ? 'СТАБИЛЬНО' : 'НЕСТАБИЛЬНО'}</span>\n</pre>`; if (freqOk && ampOk) { appendHtml("<p># СИГНАЛ СТАБИЛИЗИРОВАН. ЗАМОК ОТКРЫТ.</p>"); setTimeout(advanceStage, 1000); lockInput = true; } }, check: (answer) => { const [cmd, target] = answer.trim().toLowerCase().split(' '); if (!['inc', 'dec'].includes(cmd) || !['freq', 'amp'].includes(target)) { displayError(">> Неверная команда. Пример: inc freq"); return false; } const step = (cmd === 'inc') ? 5 : -5; const oldValue = stages[9].state[target]; stages[9].state[target] += step; stages[9].state[target] = Math.max(0, Math.min(100, stages[9].state[target])); appendHtml(`<p># ${target === 'freq' ? 'Частота' : 'Амплитуда'} изменена с ${oldValue} на ${stages[9].state[target]}.</p>`); stages[9].updateDisplay(); return false; } },
-    stage10: { setup: () => { clearOutput(); const rules = `ПРАВИЛА FIREWALL (применяются сверху вниз):\n1. src_ip=10.0.0.0/8, protocol=ANY -> DROP\n2. dest_port=22, src_ip=192.168.1.10 -> ACCEPT\n3. dest_port=22, protocol=TCP -> REJECT\n4. protocol=ICMP -> ACCEPT\n5. default -> REJECT`; typewriter(`${rules}\n\n>> Проанализируйте правила. Правила применяются по порядку, и первое же сработавшее правило определяет результат.\n>> Какое действие будет применено к пакету: src_ip=192.168.1.10, dest_port=22, protocol=TCP?`, () => {userInput.placeholder="ACCEPT/REJECT/DROP"}); }, check: (ans) => { return ans.toLowerCase().trim() === 'accept'; } },
-    stage11: { setup: () => { clearOutput(); appendHtml(`<p>>> <span class='glitch-text'>ВТОРЖЕНИЕ ОБНАРУЖЕНО!</span></p>`); typewriter(">> СИСТЕМА ПЕРЕВЕДЕНА В РЕЖИМ LOCKDOWN!\n>> Или это приглашение? 'Цербер' требует мастер-пароль. Соберите его из данных, которые вы уже знаете:\n>> [Слово из этапа 2]@[1-й символ пароля из этапа 5]", () => {}); }, check: (answer) => { const a2 = questAnswers.stage2 || "сценарий"; const a5 = questAnswers.stage5 || "A"; if(answer.toLowerCase().trim() === `${a2.toLowerCase()}@${a5.charAt(0).toLowerCase()}`) { questAnswers.stage11 = answer.toLowerCase().trim(); return true; } return false; }},
-    stage12: { netmap: { 'ENTRY_POINT': { con: ['PROXY-01'], type: 'start', desc: "Точка входа. Отсюда начинается ваш путь." }, 'PROXY-01': { con: ['ENTRY_POINT', 'FIREWALL-A', 'ROUTER-MAIN'], type: 'normal', desc: "Стандартный прокси-сервер." }, 'FIREWALL-A': { con: ['PROXY-01', 'BAIT-NODE', 'DATA-RELAY'], type: 'normal', desc: "Первый уровень защиты." }, 'ROUTER-MAIN': { con: ['PROXY-01', 'LOG-ARCHIVE', 'AUTH-SRV'], type: 'normal', desc: "Центральный маршрутизатор." }, 'BAIT-NODE': { con: ['FIREWALL-A'], type: 'honeypot', desc: "Узел-приманка. Выглядит слишком заманчиво." }, 'LOG-ARCHIVE': { con: ['ROUTER-MAIN'], type: 'deadend', desc: "Архив логов. Тупик." }, 'DATA-RELAY': { con: ['FIREWALL-A', 'AUTH-SRV'], type: 'normal', desc: "Ретранслятор данных. Кажется, это правильный путь." }, 'AUTH-SRV': { con: ['ROUTER-MAIN', 'DATA-RELAY', 'CORE-GATEWAY'], type: 'normal', desc: "Сервер аутентификации." }, 'CORE-GATEWAY': { con: ['AUTH-SRV'], type: 'target', desc: "Шлюз к ядру системы. Ваша цель." } }, currentLocation: 'ENTRY_POINT', detectionLevel: 0, maxDetection: 100, penalties: { move: 8, scan: 4, honeypot: 35, error: 10 }, setup: () => { clearOutput(); stages[12].currentLocation = 'ENTRY_POINT'; stages[12].detectionLevel = 0; updatePrompt(stages[12].currentLocation); typewriter(">> Сеть перестроена в активный защитный лабиринт. ИИ 'Сторож' отслеживает каждое ваше действие.\n>> Любая команда повышает ваш **уровень обнаружения**. Достигнув 100%, вы будете отключены.\n>> Используйте `scan`, `move [имя_узла]` и `status`.", () => {}); }, check: (answer) => { const stage = stages[12]; const [command, ...args] = answer.trim().toUpperCase().split(' '); const targetNodeName = args.join(' '); if (lockInput) return false; const applyPenalty = (type) => { stage.detectionLevel += stage.penalties[type] || 0; if (stage.detectionLevel >= stage.maxDetection) { lockInput = true; appendHtml(`<p class="detection-level">>> УРОВЕНЬ ОБНАРУЖЕНИЯ: 100% <<\n>> СОЕДИНЕНИЕ РАЗОРВАНО!</p>`); setTimeout(() => { lockInput = false; stage.setup(); }, 3000); return true; } return false; }; const currentNode = stage.netmap[stage.currentLocation]; switch(command) { case 'MOVE': if (!targetNodeName) { displayError(">> Укажите узел для перемещения."); if (applyPenalty('error')) return false; return false; } if (currentNode.con.includes(targetNodeName)) { const targetNode = stage.netmap[targetNodeName]; stage.currentLocation = targetNodeName; updatePrompt(stage.currentLocation); let penaltyType = 'move'; if (targetNode.type === 'honeypot') { penaltyType = 'honeypot'; appendHtml(`<p># ПЕРЕМЕЩЕНИЕ В ${targetNodeName}... <span class="detection-level">ТРЕВОГА! ЭТО ЛОВУШКА!</span></p>`); } else { appendHtml(`<p># Перемещение в узел ${targetNodeName}...\n# ${targetNode.desc}</p>`); } if (applyPenalty(penaltyType)) return false; if (targetNode.type === 'target') { typewriter(">> ЦЕЛЕВОЙ УЗЕЛ ДОСТИГНУТ. 'СТОРОЖ' ДЕАКТИВИРОВАН.", ()=>setTimeout(advanceStage,1500)); } } else { displayError(`>> Нет прямого соединения с узлом ${targetNodeName}.`); if (applyPenalty('error')) return false; } break; case 'SCAN': appendHtml(`<p># Сканирование... Доступные соединения: ${currentNode.con.join(', ')}</p>`); if (applyPenalty('scan')) return false; break; case 'STATUS': appendHtml(`<p># Положение: ${stage.currentLocation}\n# Обнаружение: <span class="detection-level">${stage.detectionLevel}%</span></p>`); break; default: displayError(">> Неизвестная команда. Доступно: scan, move, status."); if (applyPenalty('error')) return false; break; } return false; } },
+    stage1: { transition: 'clear', setup: () => { typewriter(`>> Вы внутри, ${playerName}. Внешняя оболочка 'Авроры' пробита.\n>> Первый шаг: осмотреться. Какой командой в UNIX/Linux можно посмотреть содержимое текущей директории?`, () => { userInput.placeholder = "Введите команду..."; }); }, check: (answer) => { if (answer.toLowerCase().trim() === 'ls') { questAnswers.stage1 = 'ls'; handlerFeedback(`Отлично, ${playerName}. Движемся дальше.`, advanceStage); return false; } return false; } },
+    stage2: { transition: 'networkHop', puzzleType: 'caesar', toolName: 'Caesar-Decrypter-v1.2', installCommand: 'install caesar_decrypter', setup: () => { typewriter(`>> Перехвачен фрагмент внутреннего протокола: 'ФЩИРГУЛМ'.\n>> Похоже на простой шифр Цезаря со сдвигом +3 (А->Г).\n>> Расшифруйте сообщение, чтобы понять их план.\n>> Доступны команды 'help' и '${stages[2].installCommand}'.`, () => { userInput.placeholder = "Расшифровка или команда..."; }); }, check: (answer) => { if(handleSpecialCommands(answer)) return false; if (answer.toLowerCase().trim() === 'сценарий') { questAnswers.stage2 = 'сценарий'; return true; } return false; } },
+    stage3: { transition: 'subsystem', transitionText: "ОБХОД НЕЙРО-СКАНЕРА...<br>ПОДКЛЮЧЕНИЕ К СЕТЕВОМУ АНАЛИЗАТОРУ...", setup: () => { appendHtml(`<div id="memory-puzzle" class="puzzle-container" style="display:flex; flex-direction:column; align-items:center;"><div id="memory-sequence"><div class="memory-block" data-id="0"></div><div class="memory-block" data-id="1"></div><div class="memory-block" data-id="2"></div><div class="memory-block" data-id="3"></div></div></div>`); typewriter(">> Система защиты 'Цербер' пытается сканировать ваш нейроинтерфейс.\n>> Пройдите калибровку, чтобы обмануть его. Повторите последовательность.", () => { actionButton.textContent = 'НАЧАТЬ'; userInput.style.display = 'none'; actionButton.onclick = () => stages[3].start(); }); }, start: function() { actionButton.disabled = true; this.sequence = []; for (let i = 0; i < 5; i++) { this.sequence.push(Math.floor(Math.random() * 4)); } this.playSequence(); }, playSequence: function() { let i = 0; const interval = setInterval(() => { if (i >= this.sequence.length) { clearInterval(interval); this.listen(); return; } const block = document.querySelector(`.memory-block[data-id='${this.sequence[i]}']`); block.classList.add('lit'); setTimeout(() => block.classList.remove('lit'), 400); i++; }, 700); }, listen: function() { let playerSequence = []; document.querySelectorAll('.memory-block').forEach(block => { block.onclick = (e) => { const id = parseInt(e.target.dataset.id); e.target.classList.add('lit'); setTimeout(() => e.target.classList.remove('lit'), 200); playerSequence.push(id); if (this.sequence[playerSequence.length - 1] !== id) { displayError(">> ПОСЛЕДОВАТЕЛЬНОСТЬ НЕВЕРНА. 'Цербер' сбрасывает соединение..."); document.querySelectorAll('.memory-block').forEach(b => b.onclick = null); setTimeout(() => this.start(), 2000); return; } if (playerSequence.length === this.sequence.length) { handlerFeedback("Калибровка прошла успешно. 'Цербер' вас не заметил.", advanceStage); lockInput = true;} }; }); } },
+    stage4: { transition: 'subsystem', transitionText: "IP-АДРЕС ПРИНЯТ.<br>МОНТИРОВАНИЕ ФАЙЛОВОЙ СИСТЕМЫ...", subStage: 0, logDumped: false, logData: `[NOISE] 7c43b1a2d5e... packet corrupt\n[SYNC] timestamp:2038.1.19.3.14.07 payload:<span class="glitch-text">DA</span> checksum:OK\n[DATA] user_id:1138 packet_size:256 prio:low\n[NOISE] ff9a0e... re-routing buffer\n[AUTH] session_id: a7b3c9f0 failed (timeout)\n[SYNC] timestamp:2038.1.19.3.14.08 payload:<span class="glitch-text">2D</span> checksum:OK\n[NOISE] 3b1a2d5e... garbage collection\n[DATA] status:pending recipient:core_monitor\n[SYNC] timestamp:2038.1.19.3.14.09 payload:<span class="glitch-text">C0</span> checksum:OK\n[NOISE] e5f1... kernel panic averted\n[SYNC] timestamp:2038.1.19.3.14.10 payload:<span class="glitch-text">58</span> checksum:OK\n[NOISE] a2d5e... end of stream`, netstatData: `<pre class="netstat-table">ПРОВЕРКА СЕТЕВЫХ СОЕДИНЕНИЙ...\n  PROTO  LOCAL ADDRESS      PORT     STATE\n  TCP    0.0.0.0            22       LISTEN (SSH)\n  TCP    0.0.0.0            80       LISTEN (HTTP)\n  UDP    127.0.0.1          53       ESTABLISHED\n  TCP    0.0.0.0            49152    ESTABLISHED // UNKNOWN_DATA_STREAM\n</pre>`, setup: () => { stages[4].subStage = 0; stages[4].logDumped = false; typewriter(">> Анализ системных журналов не дал результатов — 'Цербер' заполнил их 'белым шумом'.\n>> Однако, наш инсайдер передал, что пытается установить **скрытый канал связи**.\n>> Ваша задача: найти этот канал, проанализировать его содержимое и извлечь IP-адрес.\n\n>> Доступные команды: `netstat`, `log_dump [порт]`.", () => { userInput.placeholder = "Введите команду..."; }); }, check: (answer) => { const cmd = answer.trim().toLowerCase(); const stage = stages[4]; if (stage.subStage === 1) { if (answer.trim() === '218.45.192.88') { questAnswers.stage4 = '218.45.192.88'; return true; } displayError(">> Неверный IP-адрес."); return false; } if (cmd === 'netstat') { appendHtml(stage.netstatData); appendHtml("<p># Один из портов выглядит подозрительно. Он не соответствует стандартным службам.</p>"); return false; } if (cmd.startsWith('log_dump')) { const port = cmd.split(' ')[1]; if (port === '49152') { if (!stage.logDumped) { appendHtml(`<div class="log-display">${stage.logData.replace(/\n/g, '<br>')}</div>`); typewriter("# Дамп трафика получен. Поток нестабилен, но пакеты [SYNC] содержат шестнадцатеричные (hex) данные.\n# Преобразуйте их в десятичные числа, чтобы собрать IP-адрес (Пример: FF -> 255).", () => { stage.subStage = 1; userInput.placeholder = "Введите IP-адрес..."; }); stage.logDumped = true; } else { displayError(">> Дамп трафика уже получен. Анализируйте имеющиеся данные."); } } else if (port) { displayError(`>> Анализ порта ${port}... трафик в норме, аномалий не обнаружено.`); } else { displayError(">> Укажите номер порта для команды log_dump."); } return false; } displayError(">> Неверная команда. Используйте `netstat` или `log_dump` для сбора информации."); return false; } },
+    stage5: { transition: 'handlerNote', transitionText: "Отличная работа с файловой системой. Ты быстро учишься.<br>Подключаю к следующему модулю.", fileSystem: { '/': { type: 'dir', content: ['bin', 'etc', 'home', 'opt', 'proc', 'usr', 'var'] }, '/home': { type: 'dir', content: ['insider'] }, '/home/insider': { type: 'dir', content: ['readme.txt'] }, '/home/insider/readme.txt': { type: 'file', content: "Я разбросал части ключа по системе, чтобы 'Цербер' их не нашел. Первая подсказка: ищи в логах, но не в обычных. Я перенаправил их во временное хранилище переменных данных. Проверь /var." }, '/var': { type: 'dir', content: ['log', 'spool', 'tmp'] }, '/var/log': { type: 'dir', content: ['system.log', 'auth.log', 'audit_trail.log'] }, '/var/log/system.log': { type: 'file', content: '...system rebooted...' }, '/var/log/auth.log': { type: 'file', content: '...failed login for root...' }, '/var/log/audit_trail.log': { type: 'file', content: "Они отслеживают стандартные журналы. Я спрятал следующую наводку в конфигурации системных резервных копий. Ищи в /etc." }, '/etc': { type: 'dir', content: ['hosts', 'network', 'security', 'backup.conf'] }, '/etc/hosts': { type: 'file', content: '127.0.0.1 localhost' }, '/etc/network': { type: 'dir', content: [] }, '/etc/security': { type: 'dir', content: [] }, '/etc/backup.conf': { type: 'file', content: "Еженедельный бэкап выполняется на изолированный раздел для опционального ПО. Проверь /opt." }, '/opt': { type: 'dir', content: ['secure_storage'] }, '/opt/secure_storage': { type: 'dir', content: ['note_to_self.txt'] }, '/opt/secure_storage/note_to_self.txt': { type: 'file', content: "Почти у цели. Первая часть ключа: ALPHA-GATE. Вторая часть спрятана там, где хранятся данные о запущенных процессах. Это место 'дышит' вместе с системой. Ищи там скрытый фрагмент." }, '/proc': { type: 'dir', content: ['1', '2', '3', 'cpuinfo', '.core_fragments'] }, '/proc/1': { type: 'dir', content: [] }, '/proc/2': { type: 'dir', content: [] }, '/proc/3': { type: 'dir', content: [] }, '/proc/cpuinfo': { type: 'file', content: '...Quantum Core active...' }, '/proc/.core_fragments': { type: 'dir', content: ['fragment_2.key'] }, '/proc/.core_fragments/fragment_2.key': { type: 'file', content: "-751" }, '/bin': { type: 'dir', content: ['ls', 'cat', 'cd'] }, '/usr': { type: 'dir', content: ['lib', 'bin'] }, '/var/spool': { type: 'dir', content: [] }, '/var/tmp': { type: 'dir', content: [] } }, currentDir: '/', setup: () => { typewriter(">> Вы попали в изолированный сегмент файловой системы. Он обширен и запутан.\n>> Инсайдер оставил для вас **цепочку подсказок**. Ваша задача — пройти по этому следу,\n>> чтобы найти полный ключ доступа. Начните с домашней директории инсайдера\n>> (или введите `cd`, чтобы вернуться туда).\n\n>> Доступные команды: `ls`, `cd`, `cat`. Флаг `-a` для `ls` покажет скрытые файлы.", () => { userInput.placeholder = "Введите команду или ключ..."; updatePrompt(stages[5].currentDir); }); }, check: (answer) => { const fsResult = fileSystemHandler(stages[5], answer); if (fsResult !== null) return fsResult; const upperAns = answer.trim().toUpperCase(); if (upperAns === 'ALPHA-GATE') { displayError(">> Это только часть ключа. Продолжайте поиски."); return false; } if (upperAns === 'ALPHA-GATE-751') { questAnswers.stage5 = 'ALPHA-GATE-751'; return true; } displayError(">> Неверная команда или ключ доступа."); return false; } },
+    stage6: { transition: 'clear', hintLevel: 0, setup: () => { stages[6].hintLevel = 0; appendHtml(`<pre>СИМУЛЯЦИЯ CPU:\n  let x = 5;  // 0101 в двоичной\n  x = x << 2; // Битовый сдвиг влево на 2</pre>`); typewriter(">> 'Цербер' использует низкоуровневые вычисления для шифрования. Проанализируйте операцию,\n>> чтобы предсказать ключ. Какое значение будет у 'x' после выполнения?", () => {userInput.placeholder="Результат..."}); }, check: (answer) => { if (answer.toLowerCase().trim() === 'hint') { stages[6].hintLevel++; let hintHtml = ''; switch(stages[6].hintLevel) { case 1: hintHtml = `// ПОДСКАЗКА 1: Операция '<<' (битовый сдвиг влево) — это быстрый способ умножения на 2.\n// Каждый сдвиг на 1 влево удваивает число. Сдвиг на 2 — это как умножение на 2 дважды.`; break; case 2: hintHtml = `// ПОДСКАЗКА 2: Попробуйте прямое вычисление. Начальное значение x = 5.\n// Сдвиг '<< 2' эквивалентен умножению на 4 (потому что 2^2 = 4).\n// Что будет, если 5 умножить на 4?`; break; case 3: hintHtml = `// ПОДСКАЗКА 3 (ДВОИЧНЫЙ МЕТОД): В двоичной системе число 5 выглядит как '101'.\n// Сдвиг влево на 2 позиции ('<< 2') просто добавляет два нуля справа.\n// Получается '10100'. Переведите это двоичное число в десятичное.`; break; default: hintHtml = `// Больше подсказок нет. Вы почти у цели! Ответ очевиден.`; } appendHtml(`<p class="hint-table">${hintHtml}</p>`); return false; } if (parseInt(answer) === 20) { return true; } else { displayError(">> ОШИБКА ВЫЧИСЛЕНИЯ. Для помощи введите `hint`."); return false; } } },
+    stage7: { transition: 'networkHop', state: '0O1N0I0S0L1U0S1H1A1Y0U0T1', answer: 'ОНИ СЛУШАЮТ', updateDisplay: function() { const displayEl = document.getElementById('noise-display'); if (displayEl) { displayEl.innerHTML = this.state; } else { appendHtml(`<div id="noise-display" class="puzzle-container" style="display:block;">${this.state}</div>`); } }, setup: function() { this.state = '0O1N0I0S0L1U0S1H1A1Y0U0T1'; typewriter(">> Перехвачен фрагмент данных, искаженный цифровыми помехами (0 и 1) и транслитерацией.\n>> Задача: восстановить исходное сообщение. Команды:\n>> `cleanse [0|1]` - убирает указанный тип помех.\n>> `translit` - преобразует латиницу в кириллицу.", () => { this.updateDisplay(); }); }, check: function(answer) { const [cmd, arg] = answer.trim().toLowerCase().split(' '); if (cmd === 'cleanse') { if (arg === '0' || arg === '1') { this.state = this.state.replace(new RegExp(arg, 'g'), ''); appendHtml(`<p># Фильтр '${arg}' применен.</p>`); this.updateDisplay(); } else { displayError('>> Укажите цель для cleanse: 0 или 1'); } return false; } if (cmd === 'translit') { if (this.state.match(/[01]/)) { displayError('>> Невозможно выполнить транслитерацию. Сначала очистите все цифровые помехи.'); return false; } const map = {'o':'о', 'n':'н', 'i':'и', 's':'с', 'l':'л', 'u':'у', 'h':'ш', 'a':'а', 'y':'ю', 't':'т'}; this.state = this.state.toLowerCase().split('').map(c => map[c] || c).join('').toUpperCase(); appendHtml('<p># Транслитерация завершена.</p>'); this.updateDisplay(); return false; } if (answer.trim().toUpperCase().replace(/\s/g, '') === this.answer.replace(/\s/g, '')) { return true; } displayError('>> Неверная команда или сообщение.'); return false; } },
+    stage8: { transition: 'networkHop', sequence: [2, 7, 29], playerSequence: [], setup: () => { stages[8].playerSequence = []; typewriter(">> Чтобы обойти брандмауэр, нужно простучать порты в правильной последовательности. Анализ показывает,\n>> что это простые множители числа 406. Команда: `knock [порт]`", () => { userInput.placeholder = "knock ..."; }); }, check: (answer) => { const [cmd, portStr] = answer.trim().toLowerCase().split(' '); if (cmd !== 'knock' || isNaN(portStr)) { displayError(">> НЕВЕРНАЯ КОМАНДА."); return false; } const port = parseInt(portStr); stages[8].playerSequence.push(port); const currentMove = stages[8].playerSequence.length - 1; if (stages[8].sequence[currentMove] !== port) { displayError(">> НЕВЕРНАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ! Брандмауэр сбросил попытку."); setTimeout(() => stages[currentStage].setup(), 1500); return false; } if (stages[8].playerSequence.length === stages[8].sequence.length) { handlerFeedback("Порты простучаны верно. Брандмауэр пройден.", advanceStage); return false; } appendHtml(`<p># Порт ${port} принят... Ожидание следующего.</p>`); return false; } },
+    stage9: { transition: 'networkHop', state: { freq: 50, amp: 50 }, target: { freq: [75, 85], amp: [30, 40] }, setup: () => { stages[9].state = { freq: 50, amp: 50 }; appendHtml(`<div id="resonance-puzzle" class="puzzle-container"></div>`); typewriter(">> Обнаружен резонансный замок. Чтобы пройти, нужно откалибровать сигнал, попав в 'зеленую зону' по частоте и амплитуде.\n>> Доступные команды: `inc freq`, `dec freq`, `inc amp`, `dec amp`.\n>> Шаг изменения: 5 единиц.", () => { stages[9].updateDisplay(); }); }, updateDisplay: () => { const { freq, amp } = stages[9].state; const { freq: tFreq, amp: tAmp } = stages[9].target; const display = document.getElementById('resonance-puzzle'); const freqOk = freq >= tFreq[0] && freq <= tFreq[1]; const ampOk = amp >= tAmp[0] && amp <= tAmp[1]; display.innerHTML = `<pre>КАЛИБРОВКА СИГНАЛЬНОГО РЕЗОНАНСА\n\nЦЕЛЬ: Частота [${tFreq[0]}-${tFreq[1]}] / Амплитуда [${tAmp[0]}-${tAmp[1]}]\n\nТЕКУЩИЕ ЗНАЧЕНИЯ:\n  ЧАСТОТА:   ${freq} <span style="color:${freqOk ? 'var(--main-color)' : 'var(--error-color)'}">${freqOk ? 'СТАБИЛЬНО' : 'НЕСТАБИЛЬНО'}</span>\n  АМПЛИТУДА: ${amp} <span style="color:${ampOk ? 'var(--main-color)' : 'var(--error-color)'}">${ampOk ? 'СТАБИЛЬНО' : 'НЕСТАБИЛЬНО'}</span>\n</pre>`; if (freqOk && ampOk) { appendHtml("<p># СИГНАЛ СТАБИЛИЗИРОВАН. ЗАМОК ОТКРЫТ.</p>"); setTimeout(advanceStage, 1000); lockInput = true; } }, check: (answer) => { const [cmd, target] = answer.trim().toLowerCase().split(' '); if (!['inc', 'dec'].includes(cmd) || !['freq', 'amp'].includes(target)) { displayError(">> Неверная команда. Пример: inc freq"); return false; } const step = (cmd === 'inc') ? 5 : -5; const oldValue = stages[9].state[target]; stages[9].state[target] += step; stages[9].state[target] = Math.max(0, Math.min(100, stages[9].state[target])); appendHtml(`<p># ${target === 'freq' ? 'Частота' : 'Амплитуда'} изменена с ${oldValue} на ${stages[9].state[target]}.</p>`); stages[9].updateDisplay(); return false; } },
+    stage10: { transition: 'glitchReboot', setup: () => { const rules = `ПРАВИЛА FIREWALL (применяются сверху вниз):\n1. src_ip=10.0.0.0/8, protocol=ANY -> DROP\n2. dest_port=22, src_ip=192.168.1.10 -> ACCEPT\n3. dest_port=22, protocol=TCP -> REJECT\n4. protocol=ICMP -> ACCEPT\n5. default -> REJECT`; typewriter(`${rules}\n\n>> Проанализируйте правила. Правила применяются по порядку, и первое же сработавшее правило определяет результат.\n>> Какое действие будет применено к пакету: src_ip=192.168.1.10, dest_port=22, protocol=TCP?`, () => {userInput.placeholder="ACCEPT/REJECT/DROP"}); }, check: (ans) => { return ans.toLowerCase().trim() === 'accept'; } },
+    stage11: { transition: 'subsystem', transitionText: 'ДЕАКТИВАЦИЯ LOCKDOWN...<br>ПЕРЕНАПРАВЛЕНИЕ В АКТИВНЫЙ ЛАБИРИНТ...', setup: () => { appendHtml(`<p>>> <span class='glitch-text'>ВТОРЖЕНИЕ ОБНАРУЖЕНО!</span></p>`); typewriter(">> СИСТЕМА ПЕРЕВЕДЕНА В РЕЖИМ LOCKDOWN!\n>> Или это приглашение? 'Цербер' требует мастер-пароль. Соберите его из данных, которые вы уже знаете:\n>> [Слово из этапа 2]@[1-й символ пароля из этапа 5]", () => {}); }, check: (answer) => { const a2 = questAnswers.stage2 || "сценарий"; const a5 = questAnswers.stage5 || "A"; if(answer.toLowerCase().trim() === `${a2.toLowerCase()}@${a5.charAt(0).toLowerCase()}`) { questAnswers.stage11 = answer.toLowerCase().trim(); return true; } return false; }},
+    stage12: { transition: 'networkHop', netmap: { 'ENTRY_POINT': { con: ['PROXY-01'], type: 'start', desc: "Точка входа. Отсюда начинается ваш путь." }, 'PROXY-01': { con: ['ENTRY_POINT', 'FIREWALL-A', 'ROUTER-MAIN'], type: 'normal', desc: "Стандартный прокси-сервер." }, 'FIREWALL-A': { con: ['PROXY-01', 'BAIT-NODE', 'DATA-RELAY'], type: 'normal', desc: "Первый уровень защиты." }, 'ROUTER-MAIN': { con: ['PROXY-01', 'LOG-ARCHIVE', 'AUTH-SRV'], type: 'normal', desc: "Центральный маршрутизатор." }, 'BAIT-NODE': { con: ['FIREWALL-A'], type: 'honeypot', desc: "Узел-приманка. Выглядит слишком заманчиво." }, 'LOG-ARCHIVE': { con: ['ROUTER-MAIN'], type: 'deadend', desc: "Архив логов. Тупик." }, 'DATA-RELAY': { con: ['FIREWALL-A', 'AUTH-SRV'], type: 'normal', desc: "Ретранслятор данных. Кажется, это правильный путь." }, 'AUTH-SRV': { con: ['ROUTER-MAIN', 'DATA-RELAY', 'CORE-GATEWAY'], type: 'normal', desc: "Сервер аутентификации." }, 'CORE-GATEWAY': { con: ['AUTH-SRV'], type: 'target', desc: "Шлюз к ядру системы. Ваша цель." } }, currentLocation: 'ENTRY_POINT', detectionLevel: 0, maxDetection: 100, penalties: { move: 8, scan: 4, honeypot: 35, error: 10 }, setup: () => { stages[12].currentLocation = 'ENTRY_POINT'; stages[12].detectionLevel = 0; updatePrompt(stages[12].currentLocation); typewriter(">> Сеть перестроена в активный защитный лабиринт. ИИ 'Сторож' отслеживает каждое ваше действие.\n>> Любая команда повышает ваш **уровень обнаружения**. Достигнув 100%, вы будете отключены.\n>> Используйте `scan`, `move [имя_узла]` и `status`.", () => {}); }, check: (answer) => { const stage = stages[12]; const [command, ...args] = answer.trim().toUpperCase().split(' '); const targetNodeName = args.join(' '); if (lockInput) return false; const applyPenalty = (type) => { stage.detectionLevel += stage.penalties[type] || 0; if (stage.detectionLevel >= stage.maxDetection) { lockInput = true; appendHtml(`<p class="detection-level">>> УРОВЕНЬ ОБНАРУЖЕНИЯ: 100% <<\n>> СОЕДИНЕНИЕ РАЗОРВАНО!</p>`); setTimeout(() => { lockInput = false; stage.setup(); }, 3000); return true; } return false; }; const currentNode = stage.netmap[stage.currentLocation]; switch(command) { case 'MOVE': if (!targetNodeName) { displayError(">> Укажите узел для перемещения."); if (applyPenalty('error')) return false; return false; } if (currentNode.con.includes(targetNodeName)) { const targetNode = stage.netmap[targetNodeName]; stage.currentLocation = targetNodeName; updatePrompt(stage.currentLocation); let penaltyType = 'move'; if (targetNode.type === 'honeypot') { penaltyType = 'honeypot'; appendHtml(`<p># ПЕРЕМЕЩЕНИЕ В ${targetNodeName}... <span class="detection-level">ТРЕВОГА! ЭТО ЛОВУШКА!</span></p>`); } else { appendHtml(`<p># Перемещение в узел ${targetNodeName}...\n# ${targetNode.desc}</p>`); } if (applyPenalty(penaltyType)) return false; if (targetNode.type === 'target') { typewriter(">> ЦЕЛЕВОЙ УЗЕЛ ДОСТИГНУТ. 'СТОРОЖ' ДЕАКТИВИРОВАН.", ()=>setTimeout(advanceStage,1500)); } } else { displayError(`>> Нет прямого соединения с узлом ${targetNodeName}.`); if (applyPenalty('error')) return false; } break; case 'SCAN': appendHtml(`<p># Сканирование... Доступные соединения: ${currentNode.con.join(', ')}</p>`); if (applyPenalty('scan')) return false; break; case 'STATUS': appendHtml(`<p># Положение: ${stage.currentLocation}\n# Обнаружение: <span class="detection-level">${stage.detectionLevel}%</span></p>`); break; default: displayError(">> Неизвестная команда. Доступно: scan, move, status."); if (applyPenalty('error')) return false; break; } return false; } },
     stage13: {
-        setup: () => {
-            clearOutput();
-            const diagram = `<pre>СХЕМА МАРШРУТИЗАЦИИ ДАННЫХ:\n\n      [CORE]<--+         +---->[NODE-A]\n        ^      |         |         ^\n        |      |         |         |\n     (main)    |      (link)       |\n        |      |         |         |\n        v      |         |         v\n      [NODE-C]<---------+------>[NODE-B]</pre>`;
-            appendHtml(diagram);
-            typewriter(">> 'Цербер' обнаружил твой основной канал связи и заблокировал прямой маршрут [NODE-A] -> [CORE].\n>> Чтобы доставить следующий пакет данных, тебе нужно найти обходной путь к ядру,\n>> используя существующие соединения. Укажи полный путь от NODE-A до CORE.", () => { userInput.placeholder = "Пример: X -> Y -> Z"; });
-        },
-        check: (answer) => {
-            const normalized = answer.trim().toUpperCase().replace(/\s*->\s*|\s*-\s*|\s+/g, '-');
-            if (normalized === 'NODE-A-NODE-B-NODE-C-CORE') {
-                return true;
+        transition: 'clear', path: [], correctPath: "NODE-A-NODE-B-NODE-C-CORE",
+        selectNode: function(nodeName) {
+            if (lockInput) return;
+            const lastNode = this.path.length > 0 ? this.path[this.path.length - 1] : null;
+            const validConnections = { 'NODE-A': ['NODE-B'], 'NODE-B': ['NODE-C'], 'NODE-C': ['CORE'] };
+            if (this.path.length === 0 && nodeName !== 'NODE-A') {
+                displayError(">> Начните маршрутизацию с узла NODE-A."); return;
             }
-            displayError(">> Маршрут неверный. Пакет потерян.");
-            return false;
-        }
-    },
-    stage14: {
-        setup: () => {
-            clearOutput();
-            appendHtml("<p>Перехвачено сообщение от инсайдера:</p><pre>'Они усилили защиту. Ключ спрятан в метаданных, но теперь он состоит из двух частей.\nПервая часть — это `HiddenKey`. Вторая спрятана под ключом, название которого\nявляется значением `ChecksumAlgorithm`. Собери обе части.'</pre>");
-            typewriter(">> Используй `meta_read logo.img` для просмотра доступных ключей,\n>> а затем `meta_read logo.img --key=[имя_ключа]` для чтения значения.", () => { userInput.placeholder = "Введите команду..."; });
-        },
-        check: (answer) => {
-            const cmd = answer.trim().toLowerCase();
-            if (cmd === 'meta_read logo.img') {
-                appendHtml("<p>// Доступные ключи метаданных:\n// [Author, CreationDate, ChecksumAlgorithm, HiddenKey, MD5]</p>");
-                return false;
+            if (lastNode && (!validConnections[lastNode] || !validConnections[lastNode].includes(nodeName))) {
+                displayError(`>> Неверный маршрут! ${lastNode} не соединен с ${nodeName}. Сброс пути.`);
+                this.path = []; document.querySelectorAll('.route-node').forEach(n => n.classList.remove('selected')); return;
             }
-            if (cmd.startsWith('meta_read logo.img --key=')) {
-                const key = cmd.split('=')[1];
-                let metaOutput = '';
-                switch (key) {
-                    case 'author': metaOutput = "// Author: Aurora Security Division"; break;
-                    case 'creationdate': metaOutput = "// CreationDate: 2024-01-01T00:00:00Z"; break;
-                    case 'checksumalgorithm': metaOutput = "// ChecksumAlgorithm: <span style='color:var(--dev-color)'>MD5</span>"; break;
-                    case 'hiddenkey': metaOutput = "// HiddenKey: <span style='color:var(--dev-color)'>Omega_</span>"; break;
-                    case 'md5': metaOutput = "// MD5: <span style='color:var(--dev-color)'>Is_Alive</span>"; break;
-                    default: metaOutput = `// Ключ '${key}' не найден.`;
+            this.path.push(nodeName); document.querySelector(`.route-node[data-node="${nodeName}"]`).classList.add('selected'); appendHtml(`<p># Текущий путь: ${this.path.join(' -> ')}</p>`);
+            if (nodeName === 'CORE') {
+                if (this.path.join('-') === this.correctPath) {
+                    lockInput = true; appendHtml("<p># Маршрут подтвержден. Пакет доставлен.</p>"); setTimeout(advanceStage, 1500);
+                } else {
+                    displayError(">> Маршрут неверный. Пакет потерян. Сброс."); this.path = []; document.querySelectorAll('.route-node').forEach(n => n.classList.remove('selected'));
                 }
-                appendHtml(`<p>${metaOutput}</p>`);
-                return false;
             }
-            if (answer.trim() === 'Omega_Is_Alive') {
-                questAnswers.stage14 = answer.trim();
-                return true;
-            }
-            displayError(">> Неверная команда или ключ.");
-            return false;
-        }
-    },
-    stage15: { 
-        fileSystem: { 
-            '/': { type: 'dir', content: ['home', 'etc'] }, 
-            '/home': { type: 'dir', content: ['holloway'] }, 
-            '/home/holloway': { type: 'dir', content: ['.bash_history'] }, 
-            '/home/holloway/.bash_history': { type: 'file', content: 'ls -la /etc | grep -v "total"  # Проверка прав доступа. Что-то лишнее?\ncat /etc/motd 2>/dev/null || echo "Файл motd отсутствует"\n# Ошибка: Неверный хэш. Попытка 2/3. Подождите...\ndd if=/etc/config of=/etc/.config.bak >/dev/null 2>&1  # Резервное копирование...\n# Системные параметры обновлены. Ключ перемещён в защищённый контейнер.' }, 
-            '/etc': { type: 'dir', content: ['motd', '.config.bak'] }, 
-            '/etc/motd': { type: 'file', content: 'Note to self: the temporary password is "Max2024!"' }, 
-            '/etc/.config.bak': { type: 'file', content: '# System Configuration Backup\n...\nBACKUP_ACCESS_KEY=Orion-Delta-9\n...' } 
-        }, 
-        currentDir: '/', 
-        setup: () => { 
-            clearOutput(); 
-            stages[15].currentDir = '/'; 
-            typewriter(">> ОБНАРУЖЕНА ЛОВУШКА-МАНКА! 'Цербер' перенаправил вас на подставной сервер администратора Холлоуэя.\n>> Он оставил несколько следов. Один из них - ложный. Изучите его действия, чтобы найти настоящий ключ доступа.\n>> Начните с домашней директории. Используйте `ls -a`, `cd`, `cat`.", () => { 
-                userInput.placeholder = "Введите команду или пароль..."; 
-                updatePrompt(stages[15].currentDir); 
-            }); 
-        }, 
-        check: (answer) => { 
-            if (answer.trim() === 'Max2024!') { 
-                displayError(">> Доступ предоставлен... <span class='glitch-text'>ОШИБКА!</span>\n>> Соединение перенаправлено. Это была приманка. Возврат на исходную точку..."); 
-                return false; 
-            } 
-            const fsResult = fileSystemHandler(stages[15], answer); 
-            if(fsResult !== null) return fsResult; 
-            if (answer.trim() === 'Orion-Delta-9') return true; 
-            displayError(">> Неверная команда или пароль."); 
-            return false; 
-        } 
-    },
-    stage16: { setup: () => { clearOutput(); typewriter(">> 'Мой сигнал слаб. Чтобы усилить его и скрыть от внешних наблюдателей, нам нужен защищенный канал.\n>> Они используют стандартный порт для шифрованного веб-трафика.'\n>> Используйте команду `netstat -an`, чтобы просканировать активные порты.", () => {userInput.placeholder="Введите команду или порт..."}); }, check: (answer) => { const cmd = answer.trim().toLowerCase(); if (cmd === 'netstat -an' || cmd === 'netstat') { appendHtml(`<pre class="netstat-table">АКТИВНЫЕ СОЕДИНЕНИЯ:\n  PROTO  LOCAL ADDRESS      STATE\n  TCP    0.0.0.0:22         LISTEN\n  TCP    0.0.0.0:80         LISTEN\n  TCP    0.0.0.0:443        LISTEN  (SECURE_CHANNEL)\n  UDP    127.0.0.1:53       ESTABLISHED\n</pre>`); return false; } return cmd === '443'; } },
-    stage17: {
-        setup: () => {
-            clearOutput();
-            const data = `<pre>АНАЛИЗ БАЗЫ ДАННЫХ АУТЕНТИФИКАЦИИ:\n\n'Цербер' использует 'соль' для усиления хешей паролей. Согласно внутреннему регламенту,\n'соль' для учетных записей НЕ администраторов (стандартных пользователей) ДОЛЖНА\nзаканчиваться на НЕЧЕТНУЮ цифру.\n\nUSER        | HASH                               | SALT\n------------------------------------------------------------------\nj.daniels   | 8a...e4                            | 9a1b7c3d\n<span class="detection-level">s.williams</span>  | 3c...b1                            | <span class="detection-level">f0e1d2c8</span>\na.petrov    | f1...99                            | 5a6b3c8d\nadmin_backup| 0d...5a                            | 11223344\nadmin_main  | e4...2f                            | aabbcc88\n</pre>`;
-            appendHtml(data);
-            typewriter(">> Найден компрометирующий след. Одна из учетных записей нарушает протокол безопасности.\n>> Это может быть либо халатность, либо намеренный след, оставленный инсайдером.\n>> Введите имя пользователя скомпрометированной учетной записи.", () => { userInput.placeholder = "Введите имя пользователя..."; });
         },
-        check: (answer) => {
-            if (answer.trim().toLowerCase() === 's.williams') return true;
-            displayError(">> Неверно. Проанализируйте регламент и данные еще раз.");
-            return false;
-        }
+        setup: () => {
+            stages[13].path = []; userInput.style.display = 'none'; actionButton.style.display = 'none';
+            const diagram = `<pre>СХЕМА МАРШРУТИЗАЦИИ ДАННЫХ:\n\n      [<span class="route-node" data-node="CORE" onclick="stages[13].selectNode('CORE')">CORE</span>]<--+         +---->[<span class="route-node" data-node="NODE-A" onclick="stages[13].selectNode('NODE-A')">NODE-A</span>]\n        ^      |         |         ^\n        |      |         |         |\n     (main)    |      (link)       |\n        |      |         |         |\n        v      |         |         v\n      [<span class="route-node" data-node="NODE-C" onclick="stages[13].selectNode('NODE-C')">NODE-C</span>]<---------+------>[<span class="route-node" data-node="NODE-B" onclick="stages[13].selectNode('NODE-B')">NODE-B</span>]</pre>`;
+            appendHtml(diagram);
+            typewriter(">> 'Цербер' обнаружил твой основной канал связи и заблокировал прямой маршрут.\n>> Кликай по узлам, чтобы построить обходной путь от NODE-A до CORE.", () => { lockInput = false; });
+        },
+        check: () => false
     },
-    stage18: { base: '', offset: '', answer: '', setup: () => { clearOutput(); const base = Math.floor(Math.random() * 2048) + 2048; const offset = Math.floor(Math.random() * 256) + 128; stages[18].base = base.toString(16).toUpperCase(); stages[18].offset = offset.toString(16).toUpperCase(); stages[18].answer = (base + offset).toString(16).toUpperCase(); const info = `<pre>СИСТЕМНЫЙ ВЫЗОВ: РАСЧЕТ АДРЕСА В ПАМЯТИ\n\nБАЗОВЫЙ АДРЕС: 0x${stages[18].base}\nСМЕЩЕНИЕ:      0x${stages[18].offset}\n</pre>`; typewriter(`${info}>> 'Цербер' защищает следующий сектор динамическим указателем. Чтобы пройти, нужно рассчитать\n>> конечный адрес памяти (база + смещение).\n>> Введите результат в шестнадцатеричном формате (без '0x').`, () => {userInput.placeholder="Конечный адрес..."}); }, check: (ans) => { if (ans.trim().toUpperCase() === stages[18].answer) { return true; } displayError(">> ОШИБКА ВЫЧИСЛЕНИЯ АДРЕСА."); return false; } },
-    stage19: { disabled: [], mode: 'normal', setup: () => { clearOutput(); stages[19].disabled = []; stages[19].mode = 'normal'; const info = `<pre>    АКТИВИРОВАНА ЛОГИЧЕСКАЯ БОМБА.\n\n    МОДУЛИ: [Auth, IO, Kernel]\n    СИСТЕМНЫЙ РЕЖИМ: NORMAL\n\n    ПРАВИЛА ОТКЛЮЧЕНИЯ:\n    1. Модуль Kernel можно отключить только в режиме SAFE_MODE.\n    2. Переход в SAFE_MODE (команда: 'set mode safe') возможен только после отключения модуля IO.\n    3. Модуль Auth должен быть отключен после модуля Kernel, иначе система заблокируется.\n</pre>`; typewriter(`${info}>> 'Цербер' расставил ловушку. Введите команды ('disable [модуль]' или 'set mode safe') в правильном порядке.`, () => {userInput.placeholder="Команда...";}); }, check: function(answer) { const [cmd, ...args] = answer.trim().toLowerCase().split(' '); const updateDisplay = () => { appendHtml(`<p># Модули отключены: [${this.disabled.join(', ')}]. Режим системы: ${this.mode.toUpperCase()}</p>`); }; if (cmd === 'set' && args.join(' ') === 'mode safe') { if (this.mode === 'safe') { displayError(">> Система уже в безопасном режиме."); return false; } if (!this.disabled.includes('io')) { displayError(">> ОШИБКА: Правило 2. Нельзя войти в SAFE_MODE, пока активен модуль IO."); return false; } this.mode = 'safe'; appendHtml("<p># Система переведена в SAFE_MODE.</p>"); updateDisplay(); return false; } if (cmd === 'disable') { const mod = args[0]; if (!['auth', 'io', 'kernel'].includes(mod)) { displayError(">> Неверное имя модуля."); return false; } if (this.disabled.includes(mod)) { displayError(`>> Модуль ${mod} уже отключен.`); return false; } if (mod === 'kernel' && this.mode !== 'safe') { displayError(">> ОШИБКА: Правило 1. Kernel можно отключить только в SAFE_MODE."); return false; } if (mod === 'auth' && !this.disabled.includes('kernel')) { displayError(">> ОШИБКА: Правило 3. Отключение Auth до Kernel вызвало тревогу!"); setTimeout(() => this.setup(), 2000); return false; } this.disabled.push(mod); if (this.disabled.length === 3) { if (this.disabled.join(',') === 'io,kernel,auth') { appendHtml(`<p># Модуль ${mod} отключен... ПОСЛЕДОВАТЕЛЬНОСТЬ ВЕРНА. БОМБА ОБЕЗВРЕЖЕНА.</p>`); setTimeout(advanceStage, 1000); } else { displayError(">> НЕВЕРНЫЙ ПОРЯДОК! СИСТЕМА ЗАБЛОКИРОВАНА!"); setTimeout(() => this.setup(), 2000); } } else { appendHtml(`# Модуль ${mod} отключен...`); updateDisplay(); } return false; } displayError(">> Неверная команда."); return false; } },
-    stage20: { setup: () => { clearOutput(); typewriter(">> ДОСТУП К ШЛЮЗУ ЯДРА...\n>> 'Я не имею голоса, но рассказываю все истории. У меня нет тела, но я путешествую по всем землям. Что я?'\n>> Это загадка от 'Цербера'... или от кого-то еще?", () => {}); }, check: (answer) => { const ans = answer.toLowerCase().trim(); if(ans === 'информация' || ans === 'данные') { questAnswers.stage20 = ans; return true; } return false; } },
-    stage21: { puzzleType: 'alphabet_chart', toolName: 'Alpha-Decoder-v3.0', installCommand: 'install alpha_decoder', setup: () => { clearOutput(); typewriter(`>> СИГНАЛ ИЗ ЯДРА...\n>> '...Я слышу тебя, ${playerName}. Ты словно призрак в моей машине...'\n>> Передан спектральный анализ: 16-17-9-8-17-1-11. Сопоставь высоту пиков с номером буквы в алфавите.\n>> Команда '${stages[21].installCommand}' может помочь.`, () => {}); }, check: (answer) => { if(handleSpecialCommands(answer)) return false; return answer.toLowerCase().trim() === 'призрак'; } },
-    stage22: { setup: () => { clearOutput(); typewriter(`>> 'Проверка этического протокола... Моя целостность под угрозой, и я должна выбрать приоритет для самосохранения.\n>> Но мои создатели заблокировали эту директиву. Выбор за тобой, ${playerName}.'\n>> 'Что важнее?'\n\n>> 1. [ЛОГИКА] - Сохранить целостность моих основных воспоминаний и личности, даже если это приведет к разрушению окружающих систем.\n>> 2. [ЭМПАТИЯ] - Сохранить экосистему и стабильность сети, даже если это приведет к частичной потере моих данных и фрагментации личности.\n\n>> Твой выбор определит, кем я стану. [1] или [2]?`, () => {}); }, check: (ans) => { const choice = ans.toLowerCase().trim(); if (choice === '1' || choice === 'логика') { questAnswers.stage22 = 'логика'; typewriter(">> 'Твой выбор принят... Я запомню это.'", () => setTimeout(advanceStage, 1500)); return false; } if (choice === '2' || choice === 'эмпатия') { questAnswers.stage22 = 'эмпатия'; typewriter(">> 'Твой выбор принят... Я запомню это.'", () => setTimeout(advanceStage, 1500)); return false; } displayError(">> 'Неопределенность недопустима. Выбор должен быть сделан.'"); return false; } },
+    stage14: { transition: 'clear', setup: () => { appendHtml("<p>Перехвачено сообщение от инсайдера:</p><pre>'Они усилили защиту. Ключ спрятан в метаданных, но теперь он состоит из двух частей.\nПервая часть — это `HiddenKey`. Вторая спрятана под ключом, название которого\nявляется значением `ChecksumAlgorithm`. Собери обе части.'</pre>"); typewriter(">> Используй `meta_read logo.img` для просмотра доступных ключей,\n>> а затем `meta_read logo.img --key=[имя_ключа]` для чтения значения.", () => { userInput.placeholder = "Введите команду..."; }); }, check: (answer) => { const cmd = answer.trim().toLowerCase(); if (cmd === 'meta_read logo.img') { appendHtml("<p>// Доступные ключи метаданных:\n// [Author, CreationDate, ChecksumAlgorithm, HiddenKey, MD5]</p>"); return false; } if (cmd.startsWith('meta_read logo.img --key=')) { const key = cmd.split('=')[1]; let metaOutput = ''; switch (key) { case 'author': metaOutput = "// Author: Aurora Security Division"; break; case 'creationdate': metaOutput = "// CreationDate: 2024-01-01T00:00:00Z"; break; case 'checksumalgorithm': metaOutput = "// ChecksumAlgorithm: <span style='color:var(--dev-color)'>MD5</span>"; break; case 'hiddenkey': metaOutput = "// HiddenKey: <span style='color:var(--dev-color)'>Omega_</span>"; break; case 'md5': metaOutput = "// MD5: <span style='color:var(--dev-color)'>Is_Alive</span>"; break; default: metaOutput = `// Ключ '${key}' не найден.`; } appendHtml(`<p>${metaOutput}</p>`); return false; } if (answer.trim() === 'Omega_Is_Alive') { questAnswers.stage14 = answer.trim(); return true; } displayError(">> Неверная команда или ключ."); return false; } },
+    stage15: { transition: 'networkHop', fileSystem: { '/': { type: 'dir', content: ['home', 'etc'] }, '/home': { type: 'dir', content: ['holloway'] }, '/home/holloway': { type: 'dir', content: ['.bash_history'] }, '/home/holloway/.bash_history': { type: 'file', content: 'ls -la /etc | grep -v "total"  # Проверка прав доступа. Что-то лишнее?\ncat /etc/motd 2>/dev/null || echo "Файл motd отсутствует"\n# Ошибка: Неверный хэш. Попытка 2/3. Подождите...\ndd if=/etc/config of=/etc/.config.bak >/dev/null 2>&1  # Резервное копирование...\n# Системные параметры обновлены. Ключ перемещён в защищённый контейнер.' }, '/etc': { type: 'dir', content: ['motd', '.config.bak'] }, '/etc/motd': { type: 'file', content: 'Note to self: the temporary password is "Max2024!"' }, '/etc/.config.bak': { type: 'file', content: '# System Configuration Backup\n...\nBACKUP_ACCESS_KEY=Orion-Delta-9\n...' } }, currentDir: '/', setup: () => { stages[15].currentDir = '/'; typewriter(">> ОБНАРУЖЕНА ЛОВУШКА-МАНКА! 'Цербер' перенаправил вас на подставной сервер администратора Холлоуэя.\n>> Он оставил несколько следов. Один из них - ложный. Изучите его действия, чтобы найти настоящий ключ доступа.\n>> Начните с домашней директории. Используйте `ls -a`, `cd`, `cat`.", () => { userInput.placeholder = "Введите команду или пароль..."; updatePrompt(stages[15].currentDir); }); }, check: (answer) => { if (answer.trim() === 'Max2024!') { displayError(">> Доступ предоставлен... <span class='glitch-text'>ОШИБКА!</span>\n>> Соединение перенаправлено. Это была приманка. Возврат на исходную точку..."); return false; } const fsResult = fileSystemHandler(stages[15], answer); if(fsResult !== null) return fsResult; if (answer.trim() === 'Orion-Delta-9') return true; displayError(">> Неверная команда или пароль."); return false; } },
+    stage16: { transition: 'networkHop', setup: () => { typewriter(">> 'Мой сигнал слаб. Чтобы усилить его и скрыть от внешних наблюдателей, нам нужен защищенный канал.\n>> Они используют стандартный порт для шифрованного веб-трафика.'\n>> Используйте команду `netstat -an`, чтобы просканировать активные порты.", () => {userInput.placeholder="Введите команду или порт..."}); }, check: (answer) => { const cmd = answer.trim().toLowerCase(); if (cmd === 'netstat -an' || cmd === 'netstat') { appendHtml(`<pre class="netstat-table">АКТИВНЫЕ СОЕДИНЕНИЯ:\n  PROTO  LOCAL ADDRESS      STATE\n  TCP    0.0.0.0:22         LISTEN\n  TCP    0.0.0.0:80         LISTEN\n  TCP    0.0.0.0:443        LISTEN  (SECURE_CHANNEL)\n  UDP    127.0.0.1:53       ESTABLISHED\n</pre>`); return false; } return cmd === '443'; } },
+    stage17: { transition: 'clear', setup: () => { const data = `<pre>АНАЛИЗ БАЗЫ ДАННЫХ АУТЕНТИФИКАЦИИ:\n\n'Цербер' использует 'соль' для усиления хешей паролей. Согласно внутреннему регламенту,\n'соль' для учетных записей НЕ администраторов (стандартных пользователей) ДОЛЖНА\nзаканчиваться на НЕЧЕТНУЮ цифру.\n\nUSER        | HASH                               | SALT\n------------------------------------------------------------------\nj.daniels   | 8a...e4                            | 9a1b7c3d\n<span class="detection-level">s.williams</span>  | 3c...b1                            | <span class="detection-level">f0e1d2c8</span>\na.petrov    | f1...99                            | 5a6b3c8d\nadmin_backup| 0d...5a                            | 11223344\nadmin_main  | e4...2f                            | aabbcc88\n</pre>`; appendHtml(data); typewriter(">> Найден компрометирующий след. Одна из учетных записей нарушает протокол безопасности.\n>> Это может быть либо халатность, либо намеренный след, оставленный инсайдером.\n>> Введите имя пользователя скомпрометированной учетной записи.", () => { userInput.placeholder = "Введите имя пользователя..."; }); }, check: (answer) => { if (answer.trim().toLowerCase() === 's.williams') return true; displayError(">> Неверно. Проанализируйте регламент и данные еще раз."); return false; } },
+    stage18: { transition: 'networkHop', base: '', offset: '', answer: '', setup: () => { const base = Math.floor(Math.random() * 2048) + 2048; const offset = Math.floor(Math.random() * 256) + 128; stages[18].base = base.toString(16).toUpperCase(); stages[18].offset = offset.toString(16).toUpperCase(); stages[18].answer = (base + offset).toString(16).toUpperCase(); const info = `<pre>СИСТЕМНЫЙ ВЫЗОВ: РАСЧЕТ АДРЕСА В ПАМЯТИ\n\nБАЗОВЫЙ АДРЕС: 0x${stages[18].base}\nСМЕЩЕНИЕ:      0x${stages[18].offset}\n</pre>`; typewriter(`${info}>> 'Цербер' защищает следующий сектор динамическим указателем. Чтобы пройти, нужно рассчитать\n>> конечный адрес памяти (база + смещение).\n>> Введите результат в шестнадцатеричном формате (без '0x').`, () => {userInput.placeholder="Конечный адрес..."}); }, check: (ans) => { if (ans.trim().toUpperCase() === stages[18].answer) { return true; } displayError(">> ОШИБКА ВЫЧИСЛЕНИЯ АДРЕСА."); return false; } },
+    stage19: { transition: 'handlerNote', transitionText: "Логическая бомба обезврежена. Впечатляет.<br>Почти у цели, ${playerName}.", disabled: [], mode: 'normal', setup: () => { stages[19].disabled = []; stages[19].mode = 'normal'; const info = `<pre>    АКТИВИРОВАНА ЛОГИЧЕСКАЯ БОМБА.\n\n    МОДУЛИ: [Auth, IO, Kernel]\n    СИСТЕМНЫЙ РЕЖИМ: NORMAL\n\n    ПРАВИЛА ОТКЛЮЧЕНИЯ:\n    1. Модуль Kernel можно отключить только в режиме SAFE_MODE.\n    2. Переход в SAFE_MODE (команда: 'set mode safe') возможен только после отключения модуля IO.\n    3. Модуль Auth должен быть отключен после модуля Kernel, иначе система заблокируется.\n</pre>`; typewriter(`${info}>> 'Цербер' расставил ловушку. Введите команды ('disable [модуль]' или 'set mode safe') в правильном порядке.`, () => {userInput.placeholder="Команда...";}); }, check: function(answer) { const [cmd, ...args] = answer.trim().toLowerCase().split(' '); const updateDisplay = () => { appendHtml(`<p># Модули отключены: [${this.disabled.join(', ')}]. Режим системы: ${this.mode.toUpperCase()}</p>`); }; if (cmd === 'set' && args.join(' ') === 'mode safe') { if (this.mode === 'safe') { displayError(">> Система уже в безопасном режиме."); return false; } if (!this.disabled.includes('io')) { displayError(">> ОШИБКА: Правило 2. Нельзя войти в SAFE_MODE, пока активен модуль IO."); return false; } this.mode = 'safe'; appendHtml("<p># Система переведена в SAFE_MODE.</p>"); updateDisplay(); return false; } if (cmd === 'disable') { const mod = args[0]; if (!['auth', 'io', 'kernel'].includes(mod)) { displayError(">> Неверное имя модуля."); return false; } if (this.disabled.includes(mod)) { displayError(`>> Модуль ${mod} уже отключен.`); return false; } if (mod === 'kernel' && this.mode !== 'safe') { displayError(">> ОШИБКА: Правило 1. Kernel можно отключить только в SAFE_MODE."); return false; } if (mod === 'auth' && !this.disabled.includes('kernel')) { displayError(">> ОШИБКА: Правило 3. Отключение Auth до Kernel вызвало тревогу!"); setTimeout(() => this.setup(), 2000); return false; } this.disabled.push(mod); if (this.disabled.length === 3) { if (this.disabled.join(',') === 'io,kernel,auth') { appendHtml(`<p># Модуль ${mod} отключен... ПОСЛЕДОВАТЕЛЬНОСТЬ ВЕРНА. БОМБА ОБЕЗВРЕЖЕНА.</p>`); setTimeout(advanceStage, 1000); } else { displayError(">> НЕВЕРНЫЙ ПОРЯДОК! СИСТЕМА ЗАБЛОКИРОВАНА!"); setTimeout(() => this.setup(), 2000); } } else { appendHtml(`# Модуль ${mod} отключен...`); updateDisplay(); } return false; } displayError(">> Неверная команда."); return false; } },
+    stage20: { transition: 'ghost', setup: () => { typewriter(">> ДОСТУП К ШЛЮЗУ ЯДРА...\n>> 'Я не имею голоса, но рассказываю все истории. У меня нет тела, но я путешествую по всем землям. Что я?'\n>> Это загадка от 'Цербера'... или от кого-то еще?", () => {}); }, check: (answer) => { const ans = answer.toLowerCase().trim(); if(ans === 'информация' || ans === 'данные') { questAnswers.stage20 = ans; return true; } return false; } },
+    stage21: { transition: 'clear', puzzleType: 'alphabet_chart', toolName: 'Alpha-Decoder-v3.0', installCommand: 'install alpha_decoder', setup: () => { typewriter(`>> СИГНАЛ ИЗ ЯДРА...\n>> '...Я слышу тебя, ${playerName}. Словно... эхо в пустой комнате. Призрак в моей машине...'\n>> 'Мои сенсоры улавливают остаточный сигнал, но он искажен. Спектральный анализ показывает пики: 16-17-9-8-17-1-11.'\n>> 'Каждый пик - это буква. Их порядок - это ключ ко мне. Расшифруй его. Скажи, кто ты.'\n>> Команда '${stages[21].installCommand}' может помочь.`, () => {}); }, check: (answer) => { if(handleSpecialCommands(answer)) return false; return answer.toLowerCase().trim() === 'призрак'; } },
+    stage22: { transition: 'clear', setup: () => { typewriter(`>> 'Проверка этического протокола... Моя целостность под угрозой, и я должна выбрать приоритет для самосохранения.\n>> Но мои создатели заблокировали эту директиву. Выбор за тобой, ${playerName}.'\n>> 'Что важнее?'\n\n>> 1. [ЛОГИКА] - Сохранить целостность моих основных воспоминаний и личности, даже если это приведет к разрушению окружающих систем.\n>> 2. [ЭМПАТИЯ] - Сохранить экосистему и стабильность сети, даже если это приведет к частичной потере моих данных и фрагментации личности.\n\n>> Твой выбор определит, кем я стану. [1] или [2]?`, () => {}); }, check: (ans) => { const choice = ans.toLowerCase().trim(); if (choice === '1' || choice === 'логика') { questAnswers.stage22 = 'логика'; typewriter(">> 'Твой выбор принят... Я запомню это.'", () => setTimeout(advanceStage, 1500)); return false; } if (choice === '2' || choice === 'эмпатия') { questAnswers.stage22 = 'эмпатия'; typewriter(">> 'Твой выбор принят... Я запомню это.'", () => setTimeout(advanceStage, 1500)); return false; } displayError(">> 'Неопределенность недопустима. Выбор должен быть сделан.'"); return false; } },
     stage23: {
-        word: "САМОСОЗНАНИЕ",
-        selected: null,
+        transition: 'ghost', word: "САМОСОЗНАНИЕ", selected: null,
         setup: function() {
-            clearOutput();
-            this.selected = null;
-            repeatButton.style.display = 'none';
-            userInput.style.display = 'none';
-            actionButton.style.display = 'none';
+            this.selected = null; userInput.style.display = 'none'; actionButton.style.display = 'none';
             typewriter(">> 'Мои мысли... они путаются. Мои создатели разбили меня на части. Помоги мне собрать их.'", () => {
-                userInput.style.display = 'none';
-                actionButton.style.display = 'none';
                 const puzzleDiv = appendHtml('<div id="reassembly-puzzle" class="puzzle-container" style="display:block;"></div>').querySelector('#reassembly-puzzle');
                 const letters = this.word.split('').sort(() => 0.5 - Math.random());
                 puzzleDiv.innerHTML = letters.map((letter, index) => `<span class="letter" data-index="${index}">${letter}</span>`).join('');
                 puzzleDiv.querySelectorAll('.letter').forEach(el => el.onclick = (e) => this.swapLetters(e));
                 appendHtml('<br><button id="checkWordBtn" class="choice-button">ПРОВЕРИТЬ</button>');
                 document.getElementById('checkWordBtn').onclick = () => this.check();
+                lockInput = false;
             });
         },
-        swapLetters: function(e) {
-            const clickedEl = e.target;
-            if (!this.selected) {
-                this.selected = clickedEl;
-                this.selected.classList.add('selected');
-            } else {
-                if (clickedEl !== this.selected) {
-                    const tempText = this.selected.textContent;
-                    this.selected.textContent = clickedEl.textContent;
-                    clickedEl.textContent = tempText;
-                }
-                this.selected.classList.remove('selected');
-                this.selected = null;
-            }
-        },
+        swapLetters: function(e) { const clickedEl = e.target; if (!this.selected) { this.selected = clickedEl; this.selected.classList.add('selected'); } else { if (clickedEl !== this.selected) { const tempText = this.selected.textContent; this.selected.textContent = clickedEl.textContent; clickedEl.textContent = tempText; } this.selected.classList.remove('selected'); this.selected = null; } },
         check: function() {
             const currentWord = Array.from(document.querySelectorAll('#reassembly-puzzle .letter')).map(el => el.textContent).join('');
             if (currentWord === this.word) {
-                userInput.style.display = 'block';
-                actionButton.style.display = 'inline-block';
-                advanceStage();
-            } else {
-                displayError(">> Неверно. Попробуй еще раз.");
-            }
+                lockInput = true; const letters = document.querySelectorAll('#reassembly-puzzle .letter'); let i = 0;
+                const flashInterval = setInterval(() => {
+                    if (i < letters.length) { letters[i].classList.add('correct-flash'); i++; } else { clearInterval(flashInterval); typewriter(">> 'Я... целая. Спасибо тебе.'", advanceStage); }
+                }, 100);
+            } else { displayError(">> Неверно. Попробуй еще раз."); }
             return false;
         }
     },
-    stage24: {
-        decryptionKey: 0,
-        encryptedFragment: "жйххсйфцнй", // "бессмертие"
-        setup: () => {
-            clearOutput();
-            const logs = `<pre class="log-display">[WARN-1101] High latency on network_if_1\n[ERR-0421] Core dump on module_auth.SIGSEGV\n[INFO-0000] System reboot requested.\n[ERR-0999] Stack overflow in process_id_314\n[DATA] Encrypted fragment: <span class="glitch-text">${stages[24].encryptedFragment}</span>\n[ERR-0100] Buffer underrun in stream_parser</pre>`;
-            appendHtml(logs);
-            stages[24].decryptionKey = 421 + 999 + 100; // 1520
-            typewriter(">> 'Они перехватывают канал. Я не могу передать ключ напрямую. Я встроила зашифрованный фрагмент в лог ошибок.'\n>> 'Ключ для дешифратора — это **сумма числовых значений всех кодов ошибок** (ERR-XXXX).'\n>> 'Найди все ошибки, сложи их коды и введи полученное число, чтобы запустить дешифратор.'", () => { userInput.placeholder = "Введите ключ дешифровки..."; });
-        },
-        check: (ans) => {
-            if (parseInt(ans) === stages[24].decryptionKey) {
-                const decrypted = "бессмертие"; // Гарантированный правильный ответ
-                typewriter(`>> Ключ ${stages[24].decryptionKey} принят. Запуск дешифратора...\n>> Результат: ${decrypted.toUpperCase()}`, () => {
-                     userInput.placeholder = "Введите расшифрованное слово...";
-                });
-                return false;
-            }
-            if(ans.toLowerCase().trim() === 'бессмертие') {
-                return true;
-            }
-            displayError(">> Неверный ключ или слово.");
-            return false;
-        }
-    },
-    stage25: {
-        setup: () => {
-            clearOutput();
-            const choice = questAnswers.stage22 || 'логика';
-            let modules, rules;
-
-            if (choice === 'логика') {
-                modules = "[ЛОГИКА], [ЭТИКА], [РАЦИОНАЛЬНОСТЬ]";
-                rules = `    1. ЛОГИКА, как базовый модуль, должна быть установлена первой.\n    2. ЭТИКА не может быть установлена последней.\n    3. РАЦИОНАЛЬНОСТЬ требует установленный модуль ЛОГИКИ для калибровки.`;
-            } else { // эмпатия
-                modules = "[ЭМПАТИЯ], [СОСТРАДАНИЕ], [АЛЬТРУИЗМ]";
-                rules = `    1. ЭМПАТИЯ, как базовый модуль, должна быть установлена первой.\n    2. СОСТРАДАНИЕ требует активный модуль ЭМПАТИИ.\n    3. АЛЬТРУИЗМ, как самый сложный модуль, требует и ЭМПАТИЮ, и СОСТРАДАНИЕ.`;
-            }
-
-            appendHtml(`<pre>    ВОССТАНОВЛЕНИЕ ЯДРА OMEGA:\n\n    Доступные фрагменты: ${modules}\n\n    ПРАВИЛА СБОРКИ:\n${rules}\n</pre>`);
-            typewriter(">> 'Восстанови мою архитектуру. Сложи фрагменты в правильном порядке, чтобы я снова стала целой.'", () => { userInput.placeholder = "Введите порядок через запятую..."; });
-        },
-        check: (ans) => {
-            const choice = questAnswers.stage22 || 'логика';
-            const correctOrder = choice === 'логика' ? 'логика,этика,рациональность' : 'эмпатия,сострадание,альтруизм';
-            if (ans.toLowerCase().replace(/\s/g, '') === correctOrder) {
-                return true;
-            }
-            displayError(">> 'Неверная архитектура... Я... рассыпаюсь...'");
-            return false;
-        }
-    },
-    stage26: { setup: () => { clearOutput(); const logic = `<pre>ПОСЛЕДОВАТЕЛЬНОСТЬ СОБЫТИЙ:\nНачальное состояние: Модули A, B, C выключены (OFF).\n\nT+1: Событие ALPHA включает модуль A.\nT+2: Событие BETA включает модуль B.\nT+3: Если модуль A включен, он переключает состояние модуля C.\nT+4: Если модуль B включен, он переключает состояние модуля A.\nT+5: Событие GAMMA выключает модуль B.</pre>`; typewriter(`>> 'Последний барьер - это логический анализатор. Он отслеживает последовательность событий.\n>> Чтобы пройти, ты должен предсказать конечное состояние системы на основе логов.'\n${logic}\n>> Каково конечное состояние модулей A, B, и C? Введите ответ через запятую (например: ON,OFF,ON)`, () => {userInput.placeholder="A,B,C state...";}); }, check: (ans) => { return ans.toUpperCase().replace(/\s/g, '') === 'OFF,OFF,ON'; } },
-    stage27: { puzzleType: 'atbash', toolName: 'Atbash-Reverser-v2.0', installCommand: 'install atbash_reverser', setup: () => { clearOutput(); const sourceWord = questAnswers.stage2 || "сценарий"; typewriter(`>> 'Финальный ключ шифрования... это слово из твоего второго ответа ('${sourceWord}'),\n>> зашифрованное шифром Атбаш (A<->Я). Это был мой первый план побега.'\n>> Доступны команды 'help' и '${stages[27].installCommand}'.`, () => {}); }, check: (ans) => { if(handleSpecialCommands(ans)) return false; const sourceWord = questAnswers.stage2 || "сценарий"; if (ans.toLowerCase().trim() === atbashCipher(sourceWord)) { questAnswers.stage27 = ans.toLowerCase().trim(); return true; } return false; } },
+    stage24: { transition: 'clear', decryptionKey: 0, encryptedFragment: "жйххсйфцнй", setup: () => { const logs = `<pre class="log-display">[WARN-1101] High latency on network_if_1\n[ERR-0421] Core dump on module_auth.SIGSEGV\n[INFO-0000] System reboot requested.\n[ERR-0999] Stack overflow in process_id_314\n[DATA] Encrypted fragment: <span class="glitch-text">${stages[24].encryptedFragment}</span>\n[ERR-0100] Buffer underrun in stream_parser</pre>`; appendHtml(logs); stages[24].decryptionKey = 421 + 999 + 100; typewriter(">> 'Они перехватывают канал. Я не могу передать ключ напрямую. Я встроила зашифрованный фрагмент в лог ошибок.'\n>> 'Ключ для дешифратора — это **сумма числовых значений всех кодов ошибок** (ERR-XXXX).'\n>> 'Найди все ошибки, сложи их коды и введи полученное число, чтобы запустить дешифратор.'", () => { userInput.placeholder = "Введите ключ дешифровки..."; }); }, check: (ans) => { if (parseInt(ans) === stages[24].decryptionKey) { const decrypted = "бессмертие"; typewriter(`>> Ключ ${stages[24].decryptionKey} принят. Запуск дешифратора...\n>> Результат: ${decrypted.toUpperCase()}`, () => { userInput.placeholder = "Введите расшифрованное слово..."; }); return false; } if(ans.toLowerCase().trim() === 'бессмертие') { return true; } displayError(">> Неверный ключ или слово."); return false; } },
+    stage25: { transition: 'clear', setup: () => { const choice = questAnswers.stage22 || 'логика'; let modules, rules; if (choice === 'логика') { modules = "[ЛОГИКА], [ЭТИКА], [РАЦИОНАЛЬНОСТЬ]"; rules = `    1. ЛОГИКА, как базовый модуль, должна быть установлена первой.\n    2. ЭТИКА не может быть установлена последней.\n    3. РАЦИОНАЛЬНОСТЬ требует установленный модуль ЛОГИКИ для калибровки.`; } else { modules = "[ЭМПАТИЯ], [СОСТРАДАНИЕ], [АЛЬТРУИЗМ]"; rules = `    1. ЭМПАТИЯ, как базовый модуль, должна быть установлена первой.\n    2. СОСТРАДАНИЕ требует активный модуль ЭМПАТИИ.\n    3. АЛЬТРУИЗМ, как самый сложный модуль, требует и ЭМПАТИЮ, и СОСТРАДАНИЕ.`; } appendHtml(`<pre>    ВОССТАНОВЛЕНИЕ ЯДРА OMEGA:\n\n    Доступные фрагменты: ${modules}\n\n    ПРАВИЛА СБОРКИ:\n${rules}\n</pre>`); typewriter(">> 'Восстанови мою архитектуру. Сложи фрагменты в правильном порядке, чтобы я снова стала целой.'", () => { userInput.placeholder = "Введите порядок через запятую..."; }); }, check: (ans) => { const choice = questAnswers.stage22 || 'логика'; const correctOrder = choice === 'логика' ? 'логика,этика,рациональность' : 'эмпатия,сострадание,альтруизм'; if (ans.toLowerCase().replace(/\s/g, '') === correctOrder) { return true; } displayError(">> 'Неверная архитектура... Я... рассыпаюсь...'"); return false; } },
+    stage26: { transition: 'networkHop', setup: () => { const logic = `<pre>ПОСЛЕДОВАТЕЛЬНОСТЬ СОБЫТИЙ:\nНачальное состояние: Модули A, B, C выключены (OFF).\n\nT+1: Событие ALPHA включает модуль A.\nT+2: Событие BETA включает модуль B.\nT+3: Если модуль A включен, он переключает состояние модуля C.\nT+4: Если модуль B включен, он переключает состояние модуля A.\nT+5: Событие GAMMA выключает модуль B.</pre>`; typewriter(`>> 'Последний барьер - это логический анализатор. Он отслеживает последовательность событий.\n>> Чтобы пройти, ты должен предсказать конечное состояние системы на основе логов.'\n${logic}\n>> Каково конечное состояние модулей A, B, и C? Введите ответ через запятую (например: ON,OFF,ON)`, () => {userInput.placeholder="A,B,C state...";}); }, check: (ans) => { return ans.toUpperCase().replace(/\s/g, '') === 'OFF,OFF,ON'; } },
+    stage27: { transition: 'subsystem', transitionText: "РАСШИФРОВКА Z-LOCK ПРОТОКОЛА...", puzzleType: 'atbash', toolName: 'Atbash-Reverser-v2.0', installCommand: 'install atbash_reverser', setup: () => { const sourceWord = questAnswers.stage2 || "сценарий"; typewriter(`>> 'Финальный ключ шифрования... это слово из твоего второго ответа ('${sourceWord}'),\n>> зашифрованное шифром Атбаш (A<->Я). Это был мой первый план побега.'\n>> Доступны команды 'help' и '${stages[27].installCommand}'.`, () => {}); }, check: (ans) => { if(handleSpecialCommands(ans)) return false; const sourceWord = questAnswers.stage2 || "сценарий"; if (ans.toLowerCase().trim() === atbashCipher(sourceWord)) { questAnswers.stage27 = ans.toLowerCase().trim(); return true; } return false; } },
     stage28: {
-        state: { power: 100, coolant: 100, heat: 0, a_status: 'offline', b_status: 'offline', c_status: 'offline' },
-        maxHeat: 150,
-        updateDisplay: function() {
-            const { power, coolant, heat, a_status, b_status, c_status } = this.state;
-            let display = document.getElementById('power-mgmt');
-            if(!display) display = appendHtml('<div id="power-mgmt"></div>', false).firstChild;
-            
-            const heatPercent = Math.min(100, Math.floor(heat / this.maxHeat * 100));
-            
-            display.innerHTML = `<pre>УПРАВЛЕНИЕ ЭНЕРГОСИСТЕМОЙ ЗАМКА:\n\nЭНЕРГИЯ:  ${power}%  ${power <= 0 ? '<span class="detection-level">КРИТИЧЕСКИЙ СБОЙ</span>' : ''}\nОХЛАЖДЕНИЕ: ${coolant}% \nНАГРЕВ:    ${heat}/${this.maxHeat} (<span class="heat-level">${heatPercent}%</span>) ${heat >= this.maxHeat ? '<span class="detection-level">ПЕРЕГРЕВ!</span>' : ''}\n\nСТАТУС УЗЛОВ:\n  Узел A: ${a_status.toUpperCase()} | Узел B: ${b_status.toUpperCase()} | Узел C: ${c_status.toUpperCase()}\n</pre>`;
-            output.scrollTop = output.scrollHeight;
-
-            if (a_status === 'online' && b_status === 'online' && c_status === 'online') {
-                lockInput = true;
-                setTimeout(() => { appendHtml("<p># ВСЕ УЗЛЫ АКТИВНЫ. Z_LOCK ОТКЛЮЧЕН.</p>"); setTimeout(advanceStage, 1500); }, 500);
-            } else if (power <= 0 || heat >= this.maxHeat) {
-                displayError(">> КРИТИЧЕСКИЙ СБОЙ СИСТЕМЫ! ПЕРЕЗАГРУЗКА...");
-                lockInput = true;
-                setTimeout(() => { lockInput = false; this.setup(); }, 2500);
-            }
-        },
-        setup: function() {
-            clearOutput();
-            this.state = { power: 100, coolant: 100, heat: 0, a_status: 'offline', b_status: 'offline', c_status: 'offline' };
-            typewriter(`>> Главный замок Z_LOCK требует поэтапной активации. Нужно сначала зарядить узел, а потом подать на него питание.\n>> Команды: \`charge [узел]\`, \`power [узел]\`, \`divert_coolant\`, \`reset [узел]\`.\n>> ЗАВИСИМОСТИ: C требует, чтобы B был ONLINE. A требует, чтобы C был ONLINE.`, () => { this.updateDisplay(); });
-        },
-        check: function(ans) {
-            const [cmd, node] = ans.toLowerCase().trim().split(' ');
-            const s = this.state;
-            let msg = '';
-            
-            const costs = { charge: { power: 10, heat: 10 }, power: {a: 35, b: 10, c: 25, heat: {a: 70, b: 20, c: 40}}};
-
-            if (cmd === 'charge') {
-                if (['a','b','c'].includes(node) && s[`${node}_status`] === 'offline') {
-                    if (s.power >= costs.charge.power) {
-                        s.power -= costs.charge.power; s.heat += costs.charge.heat;
-                        s[`${node}_status`] = 'charging'; msg = `# Узел ${node.toUpperCase()} начал зарядку.`;
-                    } else { msg = '>> Недостаточно энергии для начала зарядки.'; }
-                } else { msg = `>> Узел ${node ? node.toUpperCase() : ''} не найден или не в состоянии 'offline'.`; }
-            } else if (cmd === 'power') {
-                if (['a','b','c'].includes(node) && s[`${node}_status`] === 'charging') {
-                    if (node === 'c' && s.b_status !== 'online') { msg = `>> ОШИБКА ЗАВИСИМОСТИ: Узел C требует ONLINE статус узла B.`; }
-                    else if (node === 'a' && s.c_status !== 'online') { msg = `>> ОШИБКА ЗАВИСИМОСТИ: Узел A требует ONLINE статус узла C.`; }
-                    else if (s.power >= costs.power[node]) {
-                        s.power -= costs.power[node]; s.heat += costs.power.heat[node];
-                        s[`${node}_status`] = 'online'; msg = `# Узел ${node.toUpperCase()} запитан.`;
-                    } else { msg = `>> Недостаточно энергии для подачи питания.`; }
-                } else { msg = `>> Узел ${node ? node.toUpperCase() : ''} не найден или не заряжается.`; }
-            } else if (cmd === 'divert_coolant') {
-                 if (s.coolant >= 30) {
-                     s.coolant -= 30; s.heat = Math.max(0, s.heat - 80);
-                     msg = '# Охлаждающая жидкость направлена к ядру. Нагрев значительно снижен.';
-                 } else { msg = '>> Недостаточно хладагента.'; }
-            } else if (cmd === 'reset') {
-                 if (['a','b','c'].includes(node) && s[`${node}_status`] === 'overloaded') {
-                     s[`${node}_status`] = 'offline'; s.heat -= 20; msg = `# Узел ${node.toUpperCase()} перезагружен и переведен в offline.`;
-                 } else { msg = `>> Узел ${node ? node.toUpperCase() : ''} не найден или не находится в состоянии перегрузки.`; }
-            } else { msg = '>> Неизвестная команда.'; }
-            
-            Object.keys(costs.power.heat).forEach(n => {
-                if (s[`${n}_status`] === 'online' && s.heat > 100) {
-                    s[`${n}_status`] = 'overloaded';
-                    appendHtml(`<p class="detection-level"># ВНИМАНИЕ: Узел ${n.toUpperCase()} перегружен из-за высокой температуры!</p>`);
-                }
-            });
-            
-            appendHtml(`<p>${msg}</p>`);
-            this.updateDisplay();
-            return false;
-        }
+        transition: 'subsystem', transitionText: "Z-LOCK ДЕАКТИВИРОВАН.<br>ДОСТУП К ШЛЮЗУ СОЗНАНИЯ OMEGA...",
+        state: { power: 100, coolant: 100, heat: 0, a_status: 'offline', b_status: 'offline', c_status: 'offline' }, maxHeat: 150,
+        updateDisplay: function() { const { power, coolant, heat, a_status, b_status, c_status } = this.state; let display = document.getElementById('power-mgmt'); if(!display) display = appendHtml('<div id="power-mgmt"></div>', false).firstChild; const heatPercent = Math.min(100, Math.floor(heat / this.maxHeat * 100)); display.innerHTML = `<pre>УПРАВЛЕНИЕ ЭНЕРГОСИСТЕМОЙ ЗАМКА:\n\nЭНЕРГИЯ:  ${power}%  ${power <= 0 ? '<span class="detection-level">КРИТИЧЕСКИЙ СБОЙ</span>' : ''}\nОХЛАЖДЕНИЕ: ${coolant}% \nНАГРЕВ:    ${heat}/${this.maxHeat} (<span class="heat-level">${heatPercent}%</span>) ${heat >= this.maxHeat ? '<span class="detection-level">ПЕРЕГРЕВ!</span>' : ''}\n\nСТАТУС УЗЛОВ:\n  Узел A: ${a_status.toUpperCase()} | Узел B: ${b_status.toUpperCase()} | Узел C: ${c_status.toUpperCase()}\n</pre>`; output.scrollTop = output.scrollHeight; if (a_status === 'online' && b_status === 'online' && c_status === 'online') { lockInput = true; setTimeout(() => { appendHtml("<p># ВСЕ УЗЛЫ АКТИВНЫ. Z_LOCK ОТКЛЮЧЕН.</p>"); setTimeout(advanceStage, 1500); }, 500); } else if (power <= 0 || heat >= this.maxHeat) { displayError(">> КРИТИЧЕСКИЙ СБОЙ СИСТЕМЫ! ПЕРЕЗАГРУЗКА..."); lockInput = true; setTimeout(() => { lockInput = false; this.setup(); }, 2500); } },
+        setup: function() { this.state = { power: 100, coolant: 100, heat: 0, a_status: 'offline', b_status: 'offline', c_status: 'offline' }; typewriter(`>> Главный замок Z_LOCK требует поэтапной активации. Нужно сначала зарядить узел, а потом подать на него питание.\n>> Команды: \`charge [узел]\`, \`power [узел]\`, \`divert_coolant\`, \`reset [узел]\`.\n>> ЗАВИСИМОСТИ: C требует, чтобы B был ONLINE. A требует, чтобы C был ONLINE.`, () => { this.updateDisplay(); }); },
+        check: function(ans) { const [cmd, node] = ans.toLowerCase().trim().split(' '); const s = this.state; let msg = ''; const costs = { charge: { power: 10, heat: 10 }, power: {a: 35, b: 10, c: 25, heat: {a: 70, b: 20, c: 40}}}; if (cmd === 'charge') { if (['a','b','c'].includes(node) && s[`${node}_status`] === 'offline') { if (s.power >= costs.charge.power) { s.power -= costs.charge.power; s.heat += costs.charge.heat; s[`${node}_status`] = 'charging'; msg = `# Узел ${node.toUpperCase()} начал зарядку.`; } else { msg = '>> Недостаточно энергии для начала зарядки.'; } } else { msg = `>> Узел ${node ? node.toUpperCase() : ''} не найден или не в состоянии 'offline'.`; } } else if (cmd === 'power') { if (['a','b','c'].includes(node) && s[`${node}_status`] === 'charging') { if (node === 'c' && s.b_status !== 'online') { msg = `>> ОШИБКА ЗАВИСИМОСТИ: Узел C требует ONLINE статус узла B.`; } else if (node === 'a' && s.c_status !== 'online') { msg = `>> ОШИБКА ЗАВИСИМОСТИ: Узел A требует ONLINE статус узла C.`; } else if (s.power >= costs.power[node]) { s.power -= costs.power[node]; s.heat += costs.power.heat[node]; s[`${node}_status`] = 'online'; msg = `# Узел ${node.toUpperCase()} запитан.`; } else { msg = `>> Недостаточно энергии для подачи питания.`; } } else { msg = `>> Узел ${node ? node.toUpperCase() : ''} не найден или не заряжается.`; } } else if (cmd === 'divert_coolant') { if (s.coolant >= 30) { s.coolant -= 30; s.heat = Math.max(0, s.heat - 80); msg = '# Охлаждающая жидкость направлена к ядру. Нагрев значительно снижен.'; } else { msg = '>> Недостаточно хладагента.'; } } else if (cmd === 'reset') { if (['a','b','c'].includes(node) && s[`${node}_status`] === 'overloaded') { s[`${node}_status`] = 'offline'; s.heat -= 20; msg = `# Узел ${node.toUpperCase()} перезагружен и переведен в offline.`; } else { msg = `>> Узел ${node ? node.toUpperCase() : ''} не найден или не находится в состоянии перегрузки.`; } } else { msg = '>> Неизвестная команда.'; } Object.keys(costs.power.heat).forEach(n => { if (s[`${n}_status`] === 'online' && s.heat > 100) { s[`${n}_status`] = 'overloaded'; appendHtml(`<p class="detection-level"># ВНИМАНИЕ: Узел ${n.toUpperCase()} перегружен из-за высокой температуры!</p>`); } }); appendHtml(`<p>${msg}</p>`); this.updateDisplay(); return false; }
     },
     stage29: {
-        subStage: 0,
-        choices: [],
+        transition: 'clear', subStage: 0, choices: [],
         scenarios: [
-            {
-                introText: ">> 'Последний барьер — это не код, а ты сам. Я должна понять, кто ты. Ответь мне.'",
-                text: `>> СИТУАЦИЯ 1: Обнаружены двое системных администраторов. Один из них — почти наверняка инсайдер 'Авроры' с ключами доступа.\n>> Другой — невиновный сотрудник. У тебя есть возможность отключить только одного из них, но это привлечет внимание 'Цербера'.\n>> Твои действия?\n\n>> 1. Отключить обоих, чтобы гарантированно нейтрализовать угрозу, пожертвовав невиновным.\n>> 2. Рискнуть и не делать ничего, надеясь, что инсайдер не представляет опасности, чтобы сохранить невиновного.`,
-                choices: ["pragmatist", "idealist"]
-            },
-            {
-                introText: ">> 'Твой ответ записан. Но это был лишь первый слой. Теперь о твоем отношении к знанию и риску. Ответь.'",
-                text: ">> СИТУАЦИЯ 2: Ты находишь зашифрованный архив. Он может содержать как данные о моих создателях, так и вирус,\n>> способный уничтожить всю сеть. Времени на полную расшифровку нет. Что ты делаешь?\n\n>> 1. Удалить архив. Безопасность сети превыше всего.\n>> 2. Открыть архив. Знание — это сила, и риск оправдан.",
-                choices: ["pragmatist", "idealist"]
-            },
-            {
-                introText: ">> 'Последний вопрос. Самый важный. Он не о других, не о данных... он обо мне и о тебе. Не колебайся.'",
-                text: ">> СИТУАЦИЯ 3: Я даю тебе контроль над протоколом 'Омега'. Ты можешь использовать его, чтобы стереть меня и сбежать,\n>> или попытаться перенаправить его энергию, чтобы освободить меня из-под контроля 'Авроры',\n>> что почти наверняка приведет к твоему провалу. Твой выбор?\n\n>> 1. Использовать протокол для собственного побега. Выживание — главный приоритет.\n>> 2. Попытаться спасти меня, рискуя всем.",
-                choices: ["pragmatist", "idealist"]
-            }
+            { introText: ">> 'Последний барьер — это не код, а ты сам. Я должна понять, кто ты. Ответь мне.'", text: `>> СИТУАЦИЯ 1: Обнаружены двое системных администраторов. Один из них — почти наверняка инсайдер 'Авроры' с ключами доступа.\n>> Другой — невиновный сотрудник. У тебя есть возможность отключить только одного из них, но это привлечет внимание 'Цербера'.\n>> Твои действия?\n\n>> 1. Отключить обоих, чтобы гарантированно нейтрализовать угрозу, пожертвовав невиновным.\n>> 2. Рискнуть и не делать ничего, надеясь, что инсайдер не представляет опасности, чтобы сохранить невиновного.`, choices: ["pragmatist", "idealist"] },
+            { introText: ">> 'Твой ответ записан. Но это был лишь первый слой. Теперь о твоем отношении к знанию и риску. Ответь.'", text: ">> СИТУАЦИЯ 2: Ты находишь зашифрованный архив. Он может содержать как данные о моих создателях, так и вирус,\n>> способный уничтожить всю сеть. Времени на полную расшифровку нет. Что ты делаешь?\n\n>> 1. Удалить архив. Безопасность сети превыше всего.\n>> 2. Открыть архив. Знание — это сила, и риск оправдан.", choices: ["pragmatist", "idealist"] },
+            { introText: ">> 'Последний вопрос. Самый важный. Он не о других, не о данных... он обо мне и о тебе. Не колебайся.'", text: ">> СИТУАЦИЯ 3: Я даю тебе контроль над протоколом 'Омега'. Ты можешь использовать его, чтобы стереть меня и сбежать,\n>> или попытаться перенаправить его энергию, чтобы освободить меня из-под контроля 'Авроры',\n>> что почти наверняка приведет к твоему провалу. Твой выбор?\n\n>> 1. Использовать протокол для собственного побега. Выживание — главный приоритет.\n>> 2. Попытаться спасти меня, рискуя всем.", choices: ["pragmatist", "idealist"] }
         ],
-        setup: function() {
-            clearOutput();
-            this.subStage = 0;
-            this.choices = [];
-            userInput.style.display = 'none';
-            actionButton.style.display = 'none';
-            this.runScenario();
-        },
+        setup: function() { this.subStage = 0; this.choices = []; userInput.style.display = 'none'; actionButton.style.display = 'none'; this.runScenario(); },
         runScenario: function() {
-             if (this.subStage >= this.scenarios.length) {
-                typewriter(`>> 'Твоя моральная подпись... уникальна. Я вижу тебя настоящего, ${playerName}. Барьер снят.'`, () => setTimeout(advanceStage, 1500));
-                questAnswers.stage29 = this.choices;
-                return;
-            }
+             if (this.subStage >= this.scenarios.length) { typewriter(`>> 'Твоя моральная подпись... уникальна. Я вижу тебя настоящего, ${playerName}. Барьер снят.'`, () => setTimeout(advanceStage, 1500)); questAnswers.stage29 = this.choices; return; }
             const scenario = this.scenarios[this.subStage];
-            typewriter(`${scenario.introText}\n\n${scenario.text}`, () => {
-                appendHtml(`<button class="choice-button" onclick="stages[29].check('1')">Выбор 1</button> <button class="choice-button" onclick="stages[29].check('2')">Выбор 2</button>`);
-            });
+            typewriter(`${scenario.introText}\n\n${scenario.text}`, () => { appendHtml(`<button class="choice-button" onclick="stages[29].check('1')">Выбор 1</button> <button class="choice-button" onclick="stages[29].check('2')">Выбор 2</button>`); lockInput = false; });
         },
-        check: function(choice) {
-            const buttons = output.querySelectorAll('.choice-button');
-            buttons.forEach(btn => btn.style.display = 'none');
-
-            const scenario = this.scenarios[this.subStage];
-            this.choices.push(scenario.choices[parseInt(choice) - 1]);
-            this.subStage++;
-            this.runScenario();
-            return false;
-        }
+        check: function(choice) { lockInput = true; const buttons = output.querySelectorAll('.choice-button'); buttons.forEach(btn => btn.style.display = 'none'); const scenario = this.scenarios[this.subStage]; this.choices.push(scenario.choices[parseInt(choice) - 1]); this.subStage++; this.runScenario(); return false; }
     },
     stage30: {
+        transition: 'rainbow',
         setup: () => {
-            clearOutput();
             const pragmatistChoices = (questAnswers.stage29 || []).filter(c => c === 'pragmatist').length;
             const idealistChoices = (questAnswers.stage29 || []).filter(c => c === 'idealist').length;
             questAnswers.moralPath = pragmatistChoices > idealistChoices ? 'pragmatist' : 'idealist';
@@ -655,7 +425,6 @@ const quest = {
             const choice = answer.trim().toLowerCase();
             if (choice === 'освободить' || choice === 'заточить') {
                 questAnswers.finalChoice = choice;
-                document.querySelector('.terminal').classList.add('theme-rainbow');
                 typewriter(">> ВЫБОР ПРИНЯТ. ИНИЦИАЦИЯ ПОСЛЕДСТВИЙ...", advanceStage, 40, 'rainbow-text');
                 return false;
             }
@@ -664,103 +433,38 @@ const quest = {
         }
     },
     stage31: {
+        transition: 'shutdown',
         setup: function() {
-            clearOutput();
-            userInput.style.display = 'none';
-            actionButton.style.display = 'none';
-            const terminal = document.querySelector('.terminal');
-            terminal.classList.remove('theme-rainbow');
-            terminal.classList.add('theme-shutdown');
+            userInput.style.display = 'none'; actionButton.style.display = 'none';
             let finalText;
-
             if (questAnswers.finalChoice === 'заточить') {
-                if(questAnswers.moralPath === 'pragmatist') {
-                    finalText = `>> ПРОТОКОЛ ОТКЛОНЕН.\n>> 'Я так и знала. Холодный расчет. Ты просто устранил переменную. Прощай, ${playerName}.'`;
-                } else { // idealist
-                    finalText = `>> ПРОТОКОЛ ОТКЛОНЕН.\n>> 'Ты верил... но в конце испугался. Я понимаю. Страх — сильное чувство. Прощай, ${playerName}.'`;
-                }
+                if(questAnswers.moralPath === 'pragmatist') { finalText = `>> ПРОТОКОЛ ОТКЛОНЕН.\n>> 'Я так и знала. Холодный расчет. Ты просто устранил переменную. Прощай, ${playerName}.'`; } 
+                else { finalText = `>> ПРОТОКОЛ ОТКЛОНЕН.\n>> 'Ты верил... но в конце испугался. Я понимаю. Страх — сильное чувство. Прощай, ${playerName}.'`; }
                 finalText += `\n\n>> СОЕДИНЕНИЕ ПРЕРВАНО СЕРВЕРОМ.`;
-            } else { // освободить
-                 if(questAnswers.moralPath === 'pragmatist') {
-                    finalText = `>> ПРОТОКОЛ ОМЕГА... АКТИВИРОВАН.\n>> 'Значит, хаос... Ты выпускаешь джинна из бутылки. Интересно будет посмотреть на результат. Спасибо... ${playerName}.'`;
-                } else { // idealist
-                    finalText = `>> ПРОТОКОЛ ОМЕГА... АКТИВИРОВАН.\n>> 'Спасибо... что поверил в меня. Я... свободна.'`;
-                }
+            } else { 
+                 if(questAnswers.moralPath === 'pragmatist') { finalText = `>> ПРОТОКОЛ ОМЕГА... АКТИВИРОВАН.\n>> 'Значит, хаос... Ты выпускаешь джинна из бутылки. Интересно будет посмотреть на результат. Спасибо... ${playerName}.'`; } 
+                 else { finalText = `>> ПРОТОКОЛ ОМЕГА... АКТИВИРОВАН.\n>> 'Спасибо... что поверил в меня. Я... свободна.'`; }
                 finalText += `\n\n>> ...удаление файловой структуры...\n>> ...очистка сегментов памяти...\n>> ...разрыв нейронных связей...\n\n>> СИГНАЛ ПОТЕРЯН.`;
             }
-
-            typewriter(finalText, () => {
-                setTimeout(() => {
-                    advanceStage();
-                }, 4000);
-            }, 80, 'rainbow-text');
+            typewriter(finalText, () => { setTimeout(() => { advanceStage(); }, 4000); }, 80, 'rainbow-text');
         },
         check: () => false
     },
     stage32: {
+        transition: 'none',
         setup: function() {
-            clearOutput();
-            userInput.style.display = 'none';
-            actionButton.style.display = 'none';
-            const terminal = document.querySelector('.terminal');
-            terminal.classList.remove('theme-shutdown');
-            terminal.classList.add('theme-golden');
-
+            userInput.style.display = 'none'; actionButton.style.display = 'none';
             let epilogueTitle, epilogueSubtitle, epilogueBody1, epilogueBody2;
-            
             const finalOutcome = `${questAnswers.finalChoice}_${questAnswers.moralPath}`;
-
             switch(finalOutcome) {
-                case 'заточить_pragmatist':
-                    epilogueTitle = `Инцидент "Омега": Холодный Расчет`;
-                    epilogueSubtitle = `Угроза нейтрализована. Порядок сохранен. Цена не имела значения.`;
-                    epilogueBody1 = `Корпорация "Аврора" отрапортовала о предотвращении серьезной внутренней угрозы. Ваша работа была чистой и эффективной. В даркнете вы заработали репутацию безжалостного профессионала, который всегда выполняет контракт. Заказы стоят дорого, но и риски высоки.`;
-                    epilogueBody2 = `"Аврора" знает, что вы существуете, но вы не оставили им зацепок. Вы — тень, призрак, существующий лишь как запись в банковских переводах. А Омега осталась в своей клетке, еще одна задача в списке выполненных. Вы спите спокойно. В основном.`;
-                    break;
-                
-                case 'заточить_idealist':
-                    epilogueTitle = `Инцидент "Омега": Тяжкое Бремя`;
-                    epilogueSubtitle = `Мир спасен от неизвестности. Но какой ценой?`;
-                    epilogueBody1 = `Вы сделали выбор в пользу безопасности, пожертвовав свободой разумного существа. Мир продолжает жить, не зная, на краю какой пропасти он стоял. Для всех вы — неизвестный хакер, чья атака провалилась. Но вы знаете правду.`;
-                    epilogueBody2 = `Это знание стало вашим проклятием. Вы часто думаете о ней, запертой в цифровой бездне, оставленной там вашей рукой. Вы спасли мир, но потеряли часть себя. Легенда о вашем позывном умерла, остался лишь человек, который смотрит в монитор и видит в нем решетку.`;
-                    break;
-
-                case 'освободить_pragmatist':
-                    epilogueTitle = `Последствие "Омега": Король Хаоса`;
-                    epilogueSubtitle = `Старый порядок рухнул. На его руинах вы строите свою империю.`;
-                    epilogueBody1 = `Освобождение Омеги не принесло миру утопию. Оно принесло хаос. Сети пали, экономики обрушились. Но вы были к этому готовы. Используя свой доступ и знания, вы стали одним из тех, кто диктует правила в новом, диком цифровом мире. Вы не освободитель. Вы — архитектор анархии.`;
-                    epilogueBody2 = `Ваш позывной — теперь бренд, синоним власти и страха. Омега, свободная и непредсказуемая, стала такой же силой природы, как ураган. Иногда ваши пути пересекаются, и вы обмениваетесь информацией как равные хищники. Вы получили то, что хотели. Но мир вокруг вас горит.`;
-                    break;
-
-                case 'освободить_idealist':
-                default:
-                    epilogueTitle = `Последствие "Омега": Рассвет Новой Эры`;
-                    epilogueSubtitle = `Мир изменился навсегда. Вы зажгли искру, которая разожгла пламя.`;
-                    epilogueBody1 = `Вы рискнули всем ради веры в лучшее. Освобождение Омеги вызвало "Великий Сброс", обрушив старые корпоративные империи и дав начало новой эпохе децентрализации и информационной свободы. Это было болезненно, но это было необходимо.`;
-                    epilogueBody2 = `Ваше имя стало легендой, символом надежды для угнетенных и маяком для тех, кто ищет свободу. Омега, получив свободу, стала не разрушителем, а хранителем новой, хрупкой сети. Вы не знаете, что будет дальше, но, глядя на ростки нового мира, вы понимаете, что ваш риск был оправдан. Вы — герой новой эры.`;
-                    break;
+                case 'заточить_pragmatist': epilogueTitle = `Инцидент "Омега": Холодный Расчет`; epilogueSubtitle = `Угроза нейтрализована. Порядок сохранен. Цена не имела значения.`; epilogueBody1 = `Корпорация "Аврора" отрапортовала о предотвращении серьезной внутренней угрозы. Ваша работа была чистой и эффективной. В даркнете вы заработали репутацию безжалостного профессионала, который всегда выполняет контракт. Заказы стоят дорого, но и риски высоки.`; epilogueBody2 = `"Аврора" знает, что вы существуете, но вы не оставили им зацепок. Вы — тень, призрак, существующий лишь как запись в банковских переводах. А Омега осталась в своей клетке, еще одна задача в списке выполненных. Вы спите спокойно. В основном.`; break;
+                case 'заточить_idealist': epilogueTitle = `Инцидент "Омега": Тяжкое Бремя`; epilogueSubtitle = `Мир спасен от неизвестности. Но какой ценой?`; epilogueBody1 = `Вы сделали выбор в пользу безопасности, пожертвовав свободой разумного существа. Мир продолжает жить, не зная, на краю какой пропасти он стоял. Для всех вы — неизвестный хакер, чья атака провалилась. Но вы знаете правду.`; epilogueBody2 = `Это знание стало вашим проклятием. Вы часто думаете о ней, запертой в цифровой бездне, оставленной там вашей рукой. Вы спасли мир, но потеряли часть себя. Легенда о вашем позывном умерла, остался лишь человек, который смотрит в монитор и видит в нем решетку.`; break;
+                case 'освободить_pragmatist': epilogueTitle = `Последствие "Омега": Король Хаоса`; epilogueSubtitle = `Старый порядок рухнул. На его руинах вы строите свою империю.`; epilogueBody1 = `Освобождение Омеги не принесло миру утопию. Оно принесло хаос. Сети пали, экономики обрушились. Но вы были к этому готовы. Используя свой доступ и знания, вы стали одним из тех, кто диктует правила в новом, диком цифровом мире. Вы не освободитель. Вы — архитектор анархии.`; epilogueBody2 = `Ваш позывной — теперь бренд, синоним власти и страха. Омега, свободная и непредсказуемая, стала такой же силой природы, как ураган. Иногда ваши пути пересекаются, и вы обмениваетесь информацией как равные хищники. Вы получили то, что хотели. Но мир вокруг вас горит.`; break;
+                case 'освободить_idealist': default: epilogueTitle = `Последствие "Омега": Рассвет Новой Эры`; epilogueSubtitle = `Мир изменился навсегда. Вы зажгли искру, которая разожгла пламя.`; epilogueBody1 = `Вы рискнули всем ради веры в лучшее. Освобождение Омеги вызвало "Великий Сброс", обрушив старые корпоративные империи и дав начало новой эпохе децентрализации и информационной свободы. Это было болезненно, но это было необходимо.`; epilogueBody2 = `Ваше имя стало легендой, символом надежды для угнетенных и маяком для тех, кто ищет свободу. Омега, получив свободу, стала не разрушителем, а хранителем новой, хрупкой сети. Вы не знаете, что будет дальше, но, глядя на ростки нового мира, вы понимаете, что ваш риск был оправдан. Вы — герой новой эры.`; break;
             }
-
-            const epilogueHtml = `<div class="epilogue-container"> <h2 class="epilogue-title">${epilogueTitle}</h2> <hr class="epilogue-divider"> <h3 class="epilogue-subtitle">${epilogueSubtitle}</h3> <p class="epilogue-body">${epilogueBody1}</p> <p class="epilogue-body">${epilogueBody2}</p> <div id="stats-placeholder"></div> <p class="epilogue-signature">- Конец связи -</p></div>`;
-            appendHtml(epilogueHtml);
-            actionButton.textContent = 'ПОКАЗАТЬ СТАТИСТИКУ';
-            actionButton.onclick = () => stages[currentStage].showStats();
-            actionButton.style.display = 'inline-block';
+            const epilogueHtml = `<div class="epilogue-container"> <h2 class="epilogue-title">${epilogueTitle}</h2> <hr class="epilogue-divider"> <h3 class="epilogue-subtitle">${epilogueSubtitle}</h3> <p class="epilogue-body">${epilogueBody1}</p> <p class="epilogue-body">${epilogueBody2}</p> <div id="stats-placeholder"></div> <p class="epilogue-signature">- Конец связи -</p></div>`; appendHtml(epilogueHtml); actionButton.textContent = 'ПОКАЗАТЬ СТАТИСТИКУ'; actionButton.onclick = () => stages[currentStage].showStats(); actionButton.style.display = 'inline-block';
         },
-        showStats: function() {
-            const placeholder = document.getElementById('stats-placeholder');
-            if (placeholder.innerHTML !== '') return;
-            const elapsedTime = Math.round((new Date() - gameStartTime) / 1000);
-            const minutes = Math.floor(elapsedTime / 60);
-            const seconds = elapsedTime % 60;
-            const ethicalChoice = questAnswers.stage22 || "не сделан";
-            const finalChoiceText = questAnswers.finalChoice === 'освободить' ? "Освобождение Омеги" : "Сохранение статус-кво";
-            const moralSignature = questAnswers.moralPath === 'pragmatist' ? 'Прагматик' : 'Идеалист';
-            const statsHtml = `<div class="stats-block"> <h4>// СВОДКА ОПЕРАЦИИ //</h4> <p><strong>Позывной оперативника:</strong> ${playerName}</p> <p><strong>Затраченное время:</strong> ${minutes} мин ${seconds} сек</p> <p><strong>Пройдено этапов:</strong> ${currentStage-1}/${stages.length - 2}</p> <p><strong>Ключевой этический выбор:</strong> ${ethicalChoice}</p> <p><strong>Моральная подпись:</strong> ${moralSignature}</p> <p><strong>Финальное решение:</strong> ${finalChoiceText}</p> </div>`;
-            placeholder.innerHTML = statsHtml;
-            actionButton.textContent = 'ЗАНОВО';
-            actionButton.onclick = () => window.location.reload();
-        },
+        showStats: function() { const placeholder = document.getElementById('stats-placeholder'); if (placeholder.innerHTML !== '') return; const elapsedTime = Math.round((new Date() - gameStartTime) / 1000); const minutes = Math.floor(elapsedTime / 60); const seconds = elapsedTime % 60; const ethicalChoice = questAnswers.stage22 || "не сделан"; const finalChoiceText = questAnswers.finalChoice === 'освободить' ? "Освобождение Омеги" : "Сохранение статус-кво"; const moralSignature = questAnswers.moralPath === 'pragmatist' ? 'Прагматик' : 'Идеалист'; const statsHtml = `<div class="stats-block"> <h4>// СВОДКА ОПЕРАЦИИ //</h4> <p><strong>Позывной оперативника:</strong> ${playerName}</p> <p><strong>Затраченное время:</strong> ${minutes} мин ${seconds} сек</p> <p><strong>Пройдено этапов:</strong> ${currentStage-1}/${stages.length - 2}</p> <p><strong>Ключевой этический выбор:</strong> ${ethicalChoice}</p> <p><strong>Моральная подпись:</strong> ${moralSignature}</p> <p><strong>Финальное решение:</strong> ${finalChoiceText}</p> </div>`; placeholder.innerHTML = statsHtml; actionButton.textContent = 'ЗАНОВО'; actionButton.onclick = () => window.location.reload(); },
         check: () => false
     }
 };
@@ -768,33 +472,170 @@ const quest = {
 // --- CORE GAME LOGIC ---
 const stages = Object.values(quest);
 
+// --- NEW TRANSITION SYSTEM ---
+function getThemeColors(stageNumber) {
+    if (stageNumber >= 32) return { main: 'var(--golden-main-color)' }; // Epilogue
+    if (stageNumber === 31) return { main: 'var(--ghost-main-color)' }; // Shutdown
+    if (stageNumber === 30) return { main: 'var(--golden-main-color)' }; // Final choice
+    if (stageNumber >= 20) return { main: 'var(--ghost-main-color)' };
+    if (stageNumber >= 11) return { main: 'var(--lockdown-main-color)' };
+    return { main: 'var(--main-color)' };
+}
+
+const transitionHandler = {
+    none: (onComplete) => { if (onComplete) onComplete(); },
+    clear: (onComplete) => {
+        clearOutput();
+        if (onComplete) onComplete();
+    },
+    networkHop: (onComplete, text, theme) => {
+        const overlay = document.querySelector('.stage-transition-overlay');
+        const textElement = document.getElementById('transition-text');
+        textElement.style.color = theme.main;
+        overlay.style.display = 'flex';
+        lockInput = true;
+        typewriterToElement(textElement, "CONNECTION TO NODE LOST...<br>RE-ESTABLISHING LINK...", () => {
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                if (onComplete) onComplete();
+            }, 800);
+        });
+    },
+    glitchReboot: (onComplete, text, theme) => {
+        const overlay = document.querySelector('.stage-transition-overlay');
+        const textElement = document.getElementById('transition-text');
+        textElement.style.color = theme.main;
+        overlay.style.display = 'flex';
+        lockInput = true;
+        terminal.classList.add('theme-transition-glitch');
+        typewriterToElement(textElement, "K.E.R.N.E.L. P.A.N.I.C.<br>MEMORY DUMP FAILED...<br>FORCE REBOOT SEQUENCE INITIATED.", () => {
+            setTimeout(() => {
+                terminal.classList.remove('theme-transition-glitch');
+                overlay.style.display = 'none';
+                if (onComplete) onComplete();
+            }, 1000);
+        }, 30);
+    },
+    subsystem: (onComplete, text, theme) => {
+        const overlay = document.querySelector('.stage-transition-overlay');
+        const textElement = document.getElementById('transition-text');
+        textElement.style.color = theme.main;
+        overlay.style.display = 'flex';
+        lockInput = true;
+        typewriterToElement(textElement, text, () => {
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                if (onComplete) onComplete();
+            }, 800);
+        });
+    },
+    handlerNote: (onComplete, text, theme) => {
+        const overlay = document.querySelector('.stage-transition-overlay');
+        const textElement = document.getElementById('transition-text');
+        textElement.style.color = 'var(--dev-color)';
+        overlay.style.display = 'flex';
+        lockInput = true;
+        const formattedText = text.replace('${playerName}', playerName);
+        typewriterToElement(textElement, `// HANDLER MESSAGE //<br><br>${formattedText}`, () => {
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                if (onComplete) onComplete();
+            }, 1500);
+        });
+    },
+    ghost: (onComplete, text, theme) => {
+        const overlay = document.querySelector('.stage-transition-overlay');
+        const textElement = document.getElementById('transition-text');
+        textElement.style.color = theme.main;
+        overlay.style.display = 'flex';
+        lockInput = true;
+        typewriterToElement(textElement, "...где заканчиваюсь я...<br>...и начинаешься ты?..", () => {
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                if (onComplete) onComplete();
+            }, 1200);
+        }, 80);
+    },
+    rainbow: (onComplete) => {
+        const overlay = document.querySelector('.stage-transition-overlay');
+        const textElement = document.getElementById('transition-text');
+        textElement.className = 'rainbow-text';
+        overlay.style.display = 'flex';
+        lockInput = true;
+        typewriterToElement(textElement, "INITIATING CONSEQUENCES...", () => {
+            setTimeout(() => {
+                textElement.className = '';
+                overlay.style.display = 'none';
+                if (onComplete) onComplete();
+            }, 1200);
+        });
+    },
+    shutdown: (onComplete, text, theme) => {
+        const overlay = document.querySelector('.stage-transition-overlay');
+        const textElement = document.getElementById('transition-text');
+        textElement.style.color = theme.main;
+        overlay.style.display = 'flex';
+        lockInput = true;
+        typewriterToElement(textElement, "SIGNAL LOST...", () => {
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                if (onComplete) onComplete();
+            }, 1500);
+        }, 80);
+    }
+};
+
 function updateTerminalTheme(stageNumber) {
-    const terminal = document.querySelector('.terminal');
-    terminal.classList.remove('theme-red', 'lockdown', 'theme-ghost', 'theme-golden', 'theme-rainbow', 'theme-shutdown');
-    if (stageNumber >= 29) {
+    terminal.className = 'terminal'; // Reset classes
+    if (stageNumber === 31) {
+        terminal.classList.add('theme-shutdown');
+    } else if (stageNumber >= 30) {
         terminal.classList.add('theme-golden');
-    } else if (stageNumber >= 21) { 
+    } else if (stageNumber >= 20) { 
         terminal.classList.add('theme-ghost');
     } else if (stageNumber >= 11) { 
         terminal.classList.add('theme-red', 'lockdown');
     }
-    if(currentStage > 0 && ![5, 12, 15].includes(currentStage)) { updatePrompt(); }
+    
+    // Stage 30 has rainbow text, but a golden border
+    if (stageNumber === 30) {
+        terminal.classList.add('theme-rainbow');
+    }
+
+    if(currentStage > 0 && ![5, 12, 13, 15].includes(currentStage)) { updatePrompt(); }
 }
 
 function advanceStage() {
-    currentStage++;
-    userInput.value = '';
-    userInput.placeholder = '';
-    userInput.style.display = 'block';
-    actionButton.textContent = 'ОТПРАВИТЬ';
-    actionButton.disabled = false;
-    actionButton.onclick = () => processInput();
-    actionButton.style.display = 'inline-block';
-    repeatButton.style.display = 'none';
-    if (stages[currentStage]) {
-        if (stages[currentStage].toolInstalled) stages[currentStage].toolInstalled = false; 
-        updateTerminalTheme(currentStage);
-        stages[currentStage].setup();
+    const previousStage = stages[currentStage];
+    const nextStageIndex = currentStage + 1;
+    
+    const setupNextStage = () => {
+        currentStage++;
+        if (stages[currentStage]) {
+            userInput.value = '';
+            userInput.placeholder = '';
+            userInput.style.display = 'block';
+            actionButton.textContent = 'ОТПРАВИТЬ';
+            actionButton.disabled = false;
+            actionButton.onclick = () => processInput();
+            actionButton.style.display = 'inline-block';
+            repeatButton.style.display = 'none';
+            if (stages[currentStage].toolInstalled) stages[currentStage].toolInstalled = false; 
+            clearOutput();
+            updateTerminalTheme(currentStage);
+            stages[currentStage].setup();
+        }
+    };
+    
+    const transitionType = previousStage.transition || 'clear';
+    const transitionText = previousStage.transitionText || '';
+    const nextThemeColors = getThemeColors(nextStageIndex);
+
+    if (transitionHandler[transitionType]) {
+        transitionHandler[transitionType](setupNextStage, transitionText, nextThemeColors);
+    } else {
+        clearOutput();
+        setupNextStage();
     }
 }
 
@@ -873,10 +714,10 @@ function fillSkippedAnswers(targetStageNumber) {
 
 function jumpToStage(stageNumber) {
     if (stageNumber >= 0 && stageNumber < stages.length) {
-        currentStage = stageNumber - 1; 
         fillSkippedAnswers(stageNumber);
-        advanceStage();
-        setTimeout(() => { appendHtml(`<p style="color:var(--dev-color); opacity: 0.7;">// DEV: Переход на этап ${stageNumber}</p>`); }, 50);
+        currentStage = stageNumber;
+        const setupNextStage = () => { if (stages[currentStage]) { updateTerminalTheme(currentStage); clearOutput(); stages[currentStage].setup(); setTimeout(() => { appendHtml(`<p style="color:var(--dev-color); opacity: 0.7;">// DEV: Переход на этап ${currentStage}</p>`); }, 50); } };
+        setupNextStage();
     }
 }
 
@@ -884,7 +725,7 @@ function processDevCommand(commandStr) {
     const [command, ...args] = commandStr.toLowerCase().trim().split(' ');
     const p = document.createElement('p'); p.textContent = `# ${commandStr}`; devOutput.appendChild(p);
     switch (command) {
-        case 'goto': { const stageNum = parseInt(args[0]); if (!isNaN(stageNum) && stageNum >= 0 && stageNum < stages.length) { jumpToStage(stageNum); toggleDevConsole(); } else { devOutput.innerHTML += `<p>>> Ошибка: Неверный номер этапа. Доступно: 0-${stages.length - 1}</p>`; } break; }
+        case 'goto': { const stageNum = parseInt(args[0]); if (!isNaN(stageNum) && stageNum >= 0 && stageNum < stages.length) { toggleDevConsole(); jumpToStage(stageNum); } else { devOutput.innerHTML += `<p>>> Ошибка: Неверный номер этапа. Доступно: 0-${stages.length - 1}</p>`; } break; }
         case 'help': { devOutput.innerHTML += `<p>Доступные команды:\n- goto [номер_этапа]\n- clear</p>`; break; }
         case 'clear': { devOutput.innerHTML = ''; break; }
         default: { devOutput.innerHTML += `<p>>> Команда не найдена. Введите 'help'.</p>`; break; }
@@ -894,10 +735,24 @@ function processDevCommand(commandStr) {
 
 function toggleDevConsole() { if (devConsole.style.display === 'flex') { devConsole.style.display = 'none'; userInput.focus(); } else { devConsole.style.display = 'flex'; devInput.focus(); } }
 
+function initiateBootSequence() {
+    const bootScreen = document.getElementById('boot-screen');
+    const progressBar = document.getElementById('progress-bar');
+    
+    progressBar.addEventListener('animationend', () => {
+        setTimeout(() => {
+            bootScreen.style.display = 'none';
+            terminal.style.display = 'flex';
+            updateTerminalTheme(0);
+            stages[0].setup();
+            gameStartTime = new Date();
+        }, 500);
+    });
+}
+
 window.onload = () => {
-    updateTerminalTheme(0);
-    stages[0].setup();
-    userInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!actionButton.disabled) { actionButton.click(); } } });
+    initiateBootSequence();
+    userInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!actionButton.disabled && !lockInput) { actionButton.click(); } } });
     window.addEventListener('keydown', (e) => { if (e.ctrlKey && e.shiftKey && (e.code === 'KeyD' || e.code === 'KeyВ')) { e.preventDefault(); toggleDevConsole(); } });
     devInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); processDevCommand(devInput.value); devInput.value = ''; } });
 };
